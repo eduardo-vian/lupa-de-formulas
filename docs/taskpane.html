@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lupa de Fórmulas</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <link rel="stylesheet" href="taskpane.css?v=0.1.0">
+</head>
+<body>
+  <header>
+    <h1>Lupa de Fórmulas</h1>
+    <span class="versao">protótipo 0.1.0</span>
+  </header>
+  <p id="ultimo-atalho" class="ultimo">Nenhum atalho recebido ainda.</p>
+  <div id="aviso" class="aviso" hidden></div>
+
+  <section>
+    <h2>Célula ativa</h2>
+    <dl class="ficha">
+      <dt>Endereço</dt><dd id="cel-endereco">—</dd>
+      <dt>Valor</dt><dd id="cel-valor">—</dd>
+      <dt>Fórmula</dt><dd id="cel-formula" class="mono">—</dd>
+      <dt>Em inglês</dt><dd id="cel-formula-en" class="mono">—</dd>
+    </dl>
+    <p id="sel-info" class="nota"></p>
+  </section>
+
+  <section>
+    <div class="titulo-linha"><h2>Precedentes diretos</h2><span id="conta-prec" class="conta"></span></div>
+    <ul id="lista-prec" class="lista"></ul>
+  </section>
+
+  <section>
+    <div class="titulo-linha"><h2>Dependentes diretos</h2><span id="conta-dep" class="conta"></span></div>
+    <ul id="lista-dep" class="lista"></ul>
+  </section>
+
+  <div class="botoes">
+    <button id="btn-voltar" disabled>← Voltar</button>
+    <button id="btn-atualizar">Atualizar</button>
+  </div>
+
+  <details open>
+    <summary>Diagnóstico (para o teste)</summary>
+    <ul id="diag-lista" class="diag"></ul>
+    <textarea id="diag-texto" readonly rows="8"></textarea>
+    <button id="btn-copiar">Copiar diagnóstico</button>
+    <span id="copiado" class="nota"></span>
+  </details>
+
+  <script src="enderecos.js?v=0.1.0"></script>
+  <script src="taskpane.js?v=0.1.0"></script>
+</body>
+</html>

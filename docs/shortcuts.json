@@ -1,0 +1,24 @@
+{
+  "actions": [
+    {
+      "id": "MostrarFormula",
+      "type": "ExecuteFunction",
+      "name": "Lupa: mostrar a fórmula da célula"
+    },
+    {
+      "id": "MostrarFormulaReserva",
+      "type": "ExecuteFunction",
+      "name": "Lupa: mostrar a fórmula (atalho reserva)"
+    }
+  ],
+  "shortcuts": [
+    {
+      "action": "MostrarFormula",
+      "key": { "default": "Ctrl+Q" }
+    },
+    {
+      "action": "MostrarFormulaReserva",
+      "key": { "default": "Ctrl+Alt+Shift+F" }
+    }
+  ]
+}
