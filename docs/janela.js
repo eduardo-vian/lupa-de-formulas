@@ -2,10 +2,12 @@
 "use strict";
 
 // Janela da fórmula: exibe a árvore que o painel calcula e devolve as ações do usuário.
-// Mensagens para o painel: pronta, ir, voltar, gravar, fechar. Do painel: arvore, erro.
+// Mensagens para o painel: pronta, mostrar, ir, voltar, gravar, fechar. Do painel: arvore, erro.
 // Fora do Excel (janela.html?demo) mostra o exemplo de demo.json.
 
-const estado = { dados: null, abertos: new Set(), selecionado: null, visiveis: [], original: "", demo: false };
+const estado = {
+  dados: null, abertos: new Set(), selecionado: null, visiveis: [], original: "", demo: false, temporizador: null,
+};
 
 const $ = (id) => document.getElementById(id);
 
@@ -122,6 +124,14 @@ function selecionar(no) {
   if (!no) return;
   estado.selecionado = no;
   renderizar();
+  mostrarNoExcel(no);
+}
+
+// A linha selecionada seleciona no Excel as células dela. A pequena espera evita uma seleção
+// no Excel a cada seta do teclado.
+function mostrarNoExcel(no) {
+  clearTimeout(estado.temporizador);
+  if (no.alvo) estado.temporizador = setTimeout(() => enviar({ tipo: "mostrar", endereco: no.alvo }), 120);
 }
 
 function alternar(no) {
@@ -142,6 +152,7 @@ function alternar(no) {
 }
 
 function navegar(no) {
+  clearTimeout(estado.temporizador);
   if (!no.navegar) {
     mostrarMensagem("Esta parte não aponta para células.");
     return;

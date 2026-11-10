@@ -2,9 +2,10 @@
 
 Complemento do Excel (Office.js) para auditoria de fórmulas. Funciona no Mac, no Windows e no Excel da web.
 
-**Situação:** versão 0.2.0.
+**Situação:** versão 0.2.1.
 
 - **Ctrl+Q** abre a janela da fórmula: árvore com Elemento, Info, Valor e Local, destaque do trecho na fórmula, edição da fórmula e navegação pelas referências (duplo clique e Voltar).
+- Cada linha selecionada na árvore seleciona no Excel as células dela. Ao fechar a janela, o Excel volta para a célula de origem.
 - O painel (botão **Abrir Lupa** ou Ctrl+Alt+Shift+F) mostra precedentes e dependentes diretos e um diagnóstico do Excel em uso.
 
 ## Estrutura

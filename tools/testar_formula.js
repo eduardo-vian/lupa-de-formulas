@@ -90,6 +90,12 @@ async function principal() {
   assert.equal(desloc.formula.slice(intervalo.ini, intervalo.fim), "O111:DESLOC(O116;-1;;;)");
   assert.equal(intervalo.filhos[1].navegar, "Modelo!O115");
   assert.equal(intervalo.filhos[0].navegar, "Modelo!O111");
+  // "alvo": o que o Excel seleciona quando a linha é clicada na janela.
+  assert.equal(desloc.arvore.alvo, "Modelo!O110");
+  assert.equal(soma.alvo, "Modelo!O111:O115");
+  assert.equal(intervalo.filhos[1].filhos[0].alvo, "Modelo!O116");
+  assert.equal(intervalo.filhos[1].filhos[1].alvo, null);
+  assert.equal(intervalo.filhos[1].filhos[2].alvo, null);
 
   // ---------- Árvore: print do E23+E24 ----------
   const simples = await Av.montarDados(SOMA_SIMPLES, criarAdaptador(CELULAS));
@@ -113,6 +119,8 @@ async function principal() {
     [2, "2", "núm_índice_coluna", "2", ""],
     [2, "<omitido>", "procurar_intervalo", "VERDADEIRO", ""],
   ]);
+  assert.equal(procv.arvore.filhos[0].alvo, null);
+  assert.equal(procv.arvore.filhos[0].filhos[0].alvo, "Premissas!C2");
   const desalinhado = await Av.montarDados({ ...SOMA_SIMPLES, formulaLocal: "=SOMA(E23)" }, criarAdaptador(CELULAS));
   assert.match(desalinhado.aviso, /inglês/);
   assert.equal(desalinhado.arvore.filhos[0].ini, null);

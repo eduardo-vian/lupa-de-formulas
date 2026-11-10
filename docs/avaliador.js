@@ -436,20 +436,22 @@
     return texto.slice(tokens[no.t0].ini, tokens[no.t1].fim);
   }
 
-  // Coluna "Local": o intervalo que contém todas as células usadas por esta parte da fórmula.
-  function localDe(no, ctx) {
+  // Coluna "Local" e o intervalo que a janela seleciona no Excel ao clicar na linha:
+  // o retângulo que contém todas as células usadas por esta parte da fórmula.
+  function localizacao(no, ctx) {
     const refs = [];
     const coletar = (n) => {
       if (n.val && n.val.t === "ref") refs.push(n.val);
       else filhosDe(n).forEach(coletar);
     };
     coletar(no);
-    if (!refs.length) return "";
+    if (!refs.length) return { local: "", alvo: null };
     const folhas = new Set(refs.map((r) => r.folha));
-    if (folhas.size > 1) return "várias abas";
+    if (folhas.size > 1) return { local: "várias abas", alvo: null };
     const [folha] = folhas;
     const ref = E.formatarRef(E.caixa(refs));
-    return folha === ctx.folhaBase ? ref : `${E.prefixoFolha(folha)}!${ref}`;
+    const alvo = `${E.prefixoFolha(folha)}!${ref}`;
+    return { local: folha === ctx.folhaBase ? ref : alvo, alvo };
   }
 
   function noExibicao(no, ctx, info) {
@@ -457,7 +459,7 @@
       elemento: textoDe(no, ctx),
       info,
       valor: exibirValor(no.val, ctx.idioma),
-      local: localDe(no, ctx),
+      ...localizacao(no, ctx),
       ...spanDe(no, ctx),
       navegar: no.val && no.val.t === "ref" ? `${E.prefixoFolha(no.val.folha)}!${no.val.ref}` : null,
       omitido: false,
@@ -499,6 +501,7 @@
       info: A.nome(funcao, i, ctx.idioma),
       valor: A.padrao(funcao, i, ctx.idioma),
       local: "",
+      alvo: null,
       ini: null,
       fim: null,
       navegar: null,
@@ -516,6 +519,7 @@
       info: "",
       valor: celula.texto === "" || celula.texto == null ? "<vazio>" : String(celula.texto),
       local: ref,
+      alvo: `${E.prefixoFolha(folha)}!${ref}`,
       ini: null,
       fim: null,
       navegar: null,
@@ -524,7 +528,7 @@
     };
     const formula = typeof celula.formula === "string" ? celula.formula : "";
     const formulaLocal = celula.formulaLocal == null ? "" : String(celula.formulaLocal);
-    const dados = { celula: `${E.prefixoFolha(folha)}!${ref}`, formula: formulaLocal, arvore, aviso: "" };
+    const dados = { celula: arvore.alvo, formula: formulaLocal, arvore, aviso: "" };
     if (!formula.startsWith("=")) {
       dados.aviso = "Esta célula não tem fórmula. Digite uma abaixo para criar.";
       return dados;

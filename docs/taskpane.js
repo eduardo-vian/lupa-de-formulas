@@ -1,7 +1,7 @@
 /* global Office, Excel, Enderecos, LupaExcel */
 "use strict";
 
-const VERSAO = "0.2.0";
+const VERSAO = "0.2.1";
 const LIMITE_CELULAS = 5000; // seleção maior que isso não busca precedentes nem dependentes
 const LIMITE_ITENS = 200; // máximo de blocos listados por tipo
 const TAMANHO_JANELA = { width: 42, height: 55 }; // em % da tela
@@ -107,6 +107,7 @@ function abrirDialogo() {
     janela.dialogo.addEventHandler(Office.EventType.DialogEventReceived, (arg) => {
       registrarEvento(`janela fechada (${arg.error})`);
       esquecerJanela();
+      voltarParaCelulaDaJanela();
     });
   });
 }
@@ -146,6 +147,9 @@ async function receberDaJanela(arg) {
       janela.pronta = true;
       if (janela.ultima) enviarParaJanela(janela.ultima);
       break;
+    case "mostrar":
+      await selecionar(msg.endereco);
+      break;
     case "ir":
       if (janela.dados) janela.historico.push(janela.dados.celula);
       if (await selecionar(msg.endereco)) {
@@ -165,6 +169,7 @@ async function receberDaJanela(arg) {
       break;
     case "fechar":
       fecharJanela();
+      await voltarParaCelulaDaJanela();
       break;
     default:
       break;
@@ -180,8 +185,17 @@ async function gravarDaJanela(msg) {
     return;
   }
   registrarEvento(`fórmula gravada em ${janela.dados.celula}`);
-  if (msg.fechar) fecharJanela();
-  else await recarregarJanela(janela.dados.celula);
+  if (msg.fechar) {
+    fecharJanela();
+    await voltarParaCelulaDaJanela();
+  } else {
+    await recarregarJanela(janela.dados.celula);
+  }
+}
+
+// As linhas clicadas na janela vão mudando a seleção; ao fechar, o Excel volta à célula da janela.
+async function voltarParaCelulaDaJanela() {
+  if (janela.dados) await selecionar(janela.dados.celula);
 }
 
 function fecharJanela() {
