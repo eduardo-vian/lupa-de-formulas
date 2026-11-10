@@ -1,4 +1,7 @@
 {
+  "modo": "formula",
+  "editavel": true,
+  "titulo": "Modelo!O110",
   "celula": "Modelo!O110",
   "formula": "=SOMA(O111:DESLOC(O116;-1;;;))",
   "arvore": {
@@ -9,8 +12,8 @@
     "alvo": "Modelo!O110",
     "ini": null,
     "fim": null,
-    "navegar": null,
     "omitido": false,
+    "escolhido": false,
     "filhos": [
       {
         "elemento": "SOMA",
@@ -20,8 +23,8 @@
         "alvo": "Modelo!O111:O115",
         "ini": 1,
         "fim": 30,
-        "navegar": null,
         "omitido": false,
+        "escolhido": false,
         "filhos": [
           {
             "elemento": "O111:DESLOC(O116;-1;;;)",
@@ -31,8 +34,8 @@
             "alvo": "Modelo!O111:O115",
             "ini": 6,
             "fim": 29,
-            "navegar": "Modelo!O111:O115",
             "omitido": false,
+            "escolhido": false,
             "filhos": [
               {
                 "elemento": "O111",
@@ -42,8 +45,8 @@
                 "alvo": "Modelo!O111",
                 "ini": 6,
                 "fim": 10,
-                "navegar": "Modelo!O111",
                 "omitido": false,
+                "escolhido": false,
                 "filhos": []
               },
               {
@@ -54,8 +57,8 @@
                 "alvo": "Modelo!O115",
                 "ini": 11,
                 "fim": 29,
-                "navegar": "Modelo!O115",
                 "omitido": false,
+                "escolhido": false,
                 "filhos": [
                   {
                     "elemento": "O116",
@@ -65,8 +68,8 @@
                     "alvo": "Modelo!O116",
                     "ini": 18,
                     "fim": 22,
-                    "navegar": "Modelo!O116",
                     "omitido": false,
+                    "escolhido": false,
                     "filhos": []
                   },
                   {
@@ -77,8 +80,8 @@
                     "alvo": null,
                     "ini": 23,
                     "fim": 25,
-                    "navegar": null,
                     "omitido": false,
+                    "escolhido": false,
                     "filhos": []
                   },
                   {
@@ -89,8 +92,8 @@
                     "alvo": null,
                     "ini": null,
                     "fim": null,
-                    "navegar": null,
                     "omitido": true,
+                    "escolhido": false,
                     "filhos": []
                   },
                   {
@@ -101,8 +104,8 @@
                     "alvo": null,
                     "ini": null,
                     "fim": null,
-                    "navegar": null,
                     "omitido": true,
+                    "escolhido": false,
                     "filhos": []
                   },
                   {
@@ -113,8 +116,8 @@
                     "alvo": null,
                     "ini": null,
                     "fim": null,
-                    "navegar": null,
                     "omitido": true,
+                    "escolhido": false,
                     "filhos": []
                   }
                 ]

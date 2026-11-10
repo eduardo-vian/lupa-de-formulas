@@ -1,0 +1,73 @@
+{
+  "modo": "rastreio",
+  "titulo": "Dependentes diretos",
+  "editavel": false,
+  "formula": "",
+  "arvore": {
+    "elemento": "Dependentes diretos de Modelo!B3",
+    "info": "2 blocos",
+    "valor": "",
+    "local": "Modelo!B3",
+    "alvo": "Modelo!B3",
+    "ini": null,
+    "fim": null,
+    "omitido": false,
+    "escolhido": false,
+    "filhos": [
+      {
+        "elemento": "Modelo",
+        "info": "1 bloco",
+        "valor": "",
+        "local": "",
+        "alvo": "Modelo!B4",
+        "ini": null,
+        "fim": null,
+        "omitido": false,
+        "escolhido": false,
+        "filhos": [
+          {
+            "elemento": "B4",
+            "info": "1 célula",
+            "valor": "302,50",
+            "local": "Modelo!B4",
+            "alvo": "Modelo!B4",
+            "ini": null,
+            "fim": null,
+            "omitido": false,
+            "escolhido": false,
+            "filhos": [],
+            "formula": "=B3*Premissas!C3"
+          }
+        ]
+      },
+      {
+        "elemento": "Resumo, v2",
+        "info": "1 bloco",
+        "valor": "",
+        "local": "",
+        "alvo": "'Resumo, v2'!B1:B3",
+        "ini": null,
+        "fim": null,
+        "omitido": false,
+        "escolhido": false,
+        "filhos": [
+          {
+            "elemento": "B1:B3",
+            "info": "3 células",
+            "valor": "",
+            "local": "'Resumo, v2'!B1:B3",
+            "alvo": "'Resumo, v2'!B1:B3",
+            "ini": null,
+            "fim": null,
+            "omitido": false,
+            "escolhido": false,
+            "filhos": [],
+            "formula": "=Modelo!$B$3*A1"
+          }
+        ]
+      }
+    ]
+  },
+  "aviso": "",
+  "podeVoltar": true
+}

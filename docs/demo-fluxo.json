@@ -1,0 +1,399 @@
+{
+  "modo": "fluxo",
+  "etapa": "resultado",
+  "titulo": "Fluxo de cálculo: arquivo inteiro",
+  "visoes": {
+    "fluxos": {
+      "elemento": "Fluxos",
+      "info": "arquivo inteiro",
+      "valor": "",
+      "local": "",
+      "alvo": null,
+      "ini": null,
+      "fim": null,
+      "omitido": false,
+      "escolhido": false,
+      "filhos": [
+        {
+          "elemento": "Fora: precedentes",
+          "info": "1 célula",
+          "valor": "",
+          "local": "",
+          "alvo": "Modelo!A1",
+          "ini": null,
+          "fim": null,
+          "omitido": false,
+          "escolhido": false,
+          "filhos": [
+            {
+              "elemento": "Modelo",
+              "info": "1 célula",
+              "valor": "",
+              "local": "",
+              "alvo": "Modelo!A1",
+              "ini": null,
+              "fim": null,
+              "omitido": false,
+              "escolhido": false,
+              "filhos": [
+                {
+                  "elemento": "A1",
+                  "info": "1 célula",
+                  "valor": "",
+                  "local": "Modelo!A1",
+                  "alvo": "Modelo!A1",
+                  "ini": null,
+                  "fim": null,
+                  "omitido": false,
+                  "escolhido": false,
+                  "filhos": []
+                }
+              ]
+            }
+          ],
+          "dica": "Fora do foco, usadas por células do foco",
+          "cor": "#F8CBAD",
+          "categoria": "precedenteFora"
+        },
+        {
+          "elemento": "Dentro: entradas",
+          "info": "1 célula",
+          "valor": "",
+          "local": "",
+          "alvo": "Modelo!A2",
+          "ini": null,
+          "fim": null,
+          "omitido": false,
+          "escolhido": false,
+          "filhos": [
+            {
+              "elemento": "Modelo",
+              "info": "1 célula",
+              "valor": "",
+              "local": "",
+              "alvo": "Modelo!A2",
+              "ini": null,
+              "fim": null,
+              "omitido": false,
+              "escolhido": false,
+              "filhos": [
+                {
+                  "elemento": "A2",
+                  "info": "1 célula",
+                  "valor": "",
+                  "local": "Modelo!A2",
+                  "alvo": "Modelo!A2",
+                  "ini": null,
+                  "fim": null,
+                  "omitido": false,
+                  "escolhido": false,
+                  "filhos": []
+                }
+              ]
+            }
+          ],
+          "dica": "No foco, usam valores de fora",
+          "cor": "#FFE699",
+          "categoria": "entraFoco"
+        },
+        {
+          "elemento": "Dentro: saídas",
+          "info": "1 célula",
+          "valor": "",
+          "local": "",
+          "alvo": "Modelo!A3",
+          "ini": null,
+          "fim": null,
+          "omitido": false,
+          "escolhido": false,
+          "filhos": [
+            {
+              "elemento": "Modelo",
+              "info": "1 célula",
+              "valor": "",
+              "local": "",
+              "alvo": "Modelo!A3",
+              "ini": null,
+              "fim": null,
+              "omitido": false,
+              "escolhido": false,
+              "filhos": [
+                {
+                  "elemento": "A3",
+                  "info": "1 célula",
+                  "valor": "",
+                  "local": "Modelo!A3",
+                  "alvo": "Modelo!A3",
+                  "ini": null,
+                  "fim": null,
+                  "omitido": false,
+                  "escolhido": false,
+                  "filhos": []
+                }
+              ]
+            }
+          ],
+          "dica": "No foco, usadas por células de fora",
+          "cor": "#C6E0B4",
+          "categoria": "saiFoco"
+        },
+        {
+          "elemento": "Fora: dependentes",
+          "info": "1 célula",
+          "valor": "",
+          "local": "",
+          "alvo": "Modelo!A6",
+          "ini": null,
+          "fim": null,
+          "omitido": false,
+          "escolhido": false,
+          "filhos": [
+            {
+              "elemento": "Modelo",
+              "info": "1 célula",
+              "valor": "",
+              "local": "",
+              "alvo": "Modelo!A6",
+              "ini": null,
+              "fim": null,
+              "omitido": false,
+              "escolhido": false,
+              "filhos": [
+                {
+                  "elemento": "A6",
+                  "info": "1 célula",
+                  "valor": "",
+                  "local": "Modelo!A6",
+                  "alvo": "Modelo!A6",
+                  "ini": null,
+                  "fim": null,
+                  "omitido": false,
+                  "escolhido": false,
+                  "filhos": []
+                }
+              ]
+            }
+          ],
+          "dica": "Fora do foco, usam células do foco",
+          "cor": "#BDD7EE",
+          "categoria": "dependenteFora"
+        }
+      ]
+    },
+    "entradasSaidas": {
+      "elemento": "Entradas e saídas",
+      "info": "arquivo inteiro",
+      "valor": "",
+      "local": "",
+      "alvo": null,
+      "ini": null,
+      "fim": null,
+      "omitido": false,
+      "escolhido": false,
+      "filhos": [
+        {
+          "elemento": "Entradas",
+          "info": "2 células",
+          "valor": "",
+          "local": "",
+          "alvo": "Modelo!A1",
+          "ini": null,
+          "fim": null,
+          "omitido": false,
+          "escolhido": false,
+          "filhos": [
+            {
+              "elemento": "Modelo",
+              "info": "1 célula",
+              "valor": "",
+              "local": "",
+              "alvo": "Modelo!A1",
+              "ini": null,
+              "fim": null,
+              "omitido": false,
+              "escolhido": false,
+              "filhos": [
+                {
+                  "elemento": "A1",
+                  "info": "1 célula",
+                  "valor": "",
+                  "local": "Modelo!A1",
+                  "alvo": "Modelo!A1",
+                  "ini": null,
+                  "fim": null,
+                  "omitido": false,
+                  "escolhido": false,
+                  "filhos": []
+                }
+              ]
+            },
+            {
+              "elemento": "Premissas",
+              "info": "1 célula",
+              "valor": "",
+              "local": "",
+              "alvo": "Premissas!C2",
+              "ini": null,
+              "fim": null,
+              "omitido": false,
+              "escolhido": false,
+              "filhos": [
+                {
+                  "elemento": "C2",
+                  "info": "1 célula",
+                  "valor": "",
+                  "local": "Premissas!C2",
+                  "alvo": "Premissas!C2",
+                  "ini": null,
+                  "fim": null,
+                  "omitido": false,
+                  "escolhido": false,
+                  "filhos": []
+                }
+              ]
+            }
+          ],
+          "dica": "Têm dependentes, mas nenhum precedente no âmbito",
+          "cor": "#FFE699",
+          "categoria": "entrada"
+        },
+        {
+          "elemento": "Cálculos",
+          "info": "2 células",
+          "valor": "",
+          "local": "",
+          "alvo": "Modelo!A2:A3",
+          "ini": null,
+          "fim": null,
+          "omitido": false,
+          "escolhido": false,
+          "filhos": [
+            {
+              "elemento": "Modelo",
+              "info": "2 células",
+              "valor": "",
+              "local": "",
+              "alvo": "Modelo!A2:A3",
+              "ini": null,
+              "fim": null,
+              "omitido": false,
+              "escolhido": false,
+              "filhos": [
+                {
+                  "elemento": "A2:A3",
+                  "info": "2 células",
+                  "valor": "",
+                  "local": "Modelo!A2:A3",
+                  "alvo": "Modelo!A2:A3",
+                  "ini": null,
+                  "fim": null,
+                  "omitido": false,
+                  "escolhido": false,
+                  "filhos": []
+                }
+              ]
+            }
+          ],
+          "dica": "Têm precedentes e dependentes no âmbito",
+          "cor": "#BDD7EE",
+          "categoria": "calculo"
+        },
+        {
+          "elemento": "Saídas",
+          "info": "2 células",
+          "valor": "",
+          "local": "",
+          "alvo": "Modelo!B1,Modelo!A6",
+          "ini": null,
+          "fim": null,
+          "omitido": false,
+          "escolhido": false,
+          "filhos": [
+            {
+              "elemento": "Modelo",
+              "info": "2 células",
+              "valor": "",
+              "local": "",
+              "alvo": "Modelo!B1,Modelo!A6",
+              "ini": null,
+              "fim": null,
+              "omitido": false,
+              "escolhido": false,
+              "filhos": [
+                {
+                  "elemento": "B1",
+                  "info": "1 célula",
+                  "valor": "",
+                  "local": "Modelo!B1",
+                  "alvo": "Modelo!B1",
+                  "ini": null,
+                  "fim": null,
+                  "omitido": false,
+                  "escolhido": false,
+                  "filhos": []
+                },
+                {
+                  "elemento": "A6",
+                  "info": "1 célula",
+                  "valor": "",
+                  "local": "Modelo!A6",
+                  "alvo": "Modelo!A6",
+                  "ini": null,
+                  "fim": null,
+                  "omitido": false,
+                  "escolhido": false,
+                  "filhos": []
+                }
+              ]
+            }
+          ],
+          "dica": "Têm precedentes, mas nenhum dependente no âmbito",
+          "cor": "#C6E0B4",
+          "categoria": "saida"
+        },
+        {
+          "elemento": "Fórmulas órfãs",
+          "info": "1 célula",
+          "valor": "",
+          "local": "",
+          "alvo": "Modelo!A4",
+          "ini": null,
+          "fim": null,
+          "omitido": false,
+          "escolhido": false,
+          "filhos": [
+            {
+              "elemento": "Modelo",
+              "info": "1 célula",
+              "valor": "",
+              "local": "",
+              "alvo": "Modelo!A4",
+              "ini": null,
+              "fim": null,
+              "omitido": false,
+              "escolhido": false,
+              "filhos": [
+                {
+                  "elemento": "A4",
+                  "info": "1 célula",
+                  "valor": "",
+                  "local": "Modelo!A4",
+                  "alvo": "Modelo!A4",
+                  "ini": null,
+                  "fim": null,
+                  "omitido": false,
+                  "escolhido": false,
+                  "filhos": []
+                }
+              ]
+            }
+          ],
+          "dica": "Fórmulas sem precedentes nem dependentes no âmbito",
+          "cor": "#F8CBAD",
+          "categoria": "orfa"
+        }
+      ]
+    }
+  },
+  "visao": "fluxos"
+}

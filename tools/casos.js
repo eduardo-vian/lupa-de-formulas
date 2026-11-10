@@ -33,4 +33,24 @@ const SOMA_SIMPLES = {
   idioma: "pt-BR",
 };
 
-module.exports = { PT, CELULAS, DESLOC, SOMA_SIMPLES };
+// Pasta pequena para o fluxo de cálculo (fórmulas como Range.formulas devolve, em inglês).
+const FOLHAS_FLUXO = [
+  {
+    nome: "Modelo",
+    r0: 1,
+    c0: 1,
+    linhas: 6,
+    colunas: 2,
+    formulas: [
+      [10, "=Premissas!C2"],
+      ["=A1*2", ""],
+      ["=A2+1", ""],
+      ["=5+5", ""],
+      ["texto", ""],
+      ["=A3*2", ""],
+    ],
+  },
+  { nome: "Premissas", r0: 2, c0: 3, linhas: 2, colunas: 1, formulas: [[0.1], [7]] },
+];
+
+module.exports = { PT, CELULAS, DESLOC, SOMA_SIMPLES, FOLHAS_FLUXO };

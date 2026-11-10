@@ -18,6 +18,7 @@
     AND: { rep: ["lógico#"] }, OR: { rep: ["lógico#"] }, NOT: { fixos: ["lógico"] },
     IF: { fixos: ["teste_lógico", "[valor_se_verdadeiro]", "[valor_se_falso]"], padroes: { 2: "FALSO" } },
     IFS: { rep: ["teste_lógico#", "valor_se_verdadeiro#"] },
+    SWITCH: { fixos: ["expressão"], rep: ["valor#", "resultado#"] },
     IFERROR: { fixos: ["valor", "valor_se_erro"] },
     IFNA: { fixos: ["valor", "valor_se_nd"] },
     VLOOKUP: {

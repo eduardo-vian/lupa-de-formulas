@@ -1,10 +1,9 @@
-/* global Office, Excel, Enderecos, LupaExcel */
+/* global Office, Excel, Enderecos, LupaExcel, LupaCores, Janela */
 "use strict";
 
-const VERSAO = "0.2.1";
+const VERSAO = "0.3.0";
 const LIMITE_CELULAS = 5000; // seleção maior que isso não busca precedentes nem dependentes
 const LIMITE_ITENS = 200; // máximo de blocos listados por tipo
-const TAMANHO_JANELA = { width: 42, height: 55 }; // em % da tela
 
 // Conjuntos de requisitos conferidos no diagnóstico.
 const CONJUNTOS = [
@@ -13,16 +12,16 @@ const CONJUNTOS = [
   ["SharedRuntime", "1.1"], ["KeyboardShortcuts", "1.1"], ["RibbonApi", "1.1"], ["DialogApi", "1.2"],
 ];
 
-// Ações do shortcuts.json: tecla padrão e o que cada uma faz.
+// Ações do shortcuts.json: tecla padrão, descrição e o que cada uma faz.
 const ACOES = {
-  MostrarFormula: { tecla: "Ctrl+Q", executar: () => abrirJanela() },
-  MostrarFormulaReserva: { tecla: "Ctrl+Alt+Shift+F", executar: () => mostrarPainel() },
+  MostrarFormula: { tecla: "Ctrl+Q", descricao: "Fórmula ou precedentes", executar: () => Janela.explorarSelecao("precedentes") },
+  RastrearDependentes: { tecla: "Ctrl+Shift+Q", descricao: "Dependentes", executar: () => Janela.explorarSelecao("dependentes") },
+  FluxoCalculo: { tecla: "Ctrl+Shift+F", descricao: "Fluxo de cálculo", executar: () => Janela.abrirFluxo() },
+  VoltarExploracao: { tecla: "Ctrl+Shift+Z", descricao: "Voltar à exploração anterior", executar: () => Janela.voltar() },
+  MostrarFormulaReserva: { tecla: "Ctrl+Alt+Shift+F", descricao: "Abrir o painel", executar: () => mostrarPainel() },
 };
 
 const estado = { historico: [], eventos: [], diagnostico: [], rodada: 0 };
-
-// Janela da fórmula (diálogo do Office). Os cálculos ficam aqui; a janela só exibe.
-const janela = { dialogo: null, abrindo: false, pronta: false, ultima: null, dados: null, historico: [] };
 
 const $ = (id) => document.getElementById(id);
 
@@ -45,31 +44,33 @@ Office.onReady((info) => {
   registrarEvento("complemento carregado");
   atualizar();
   diagnosticar();
+  mostrarAtalhos();
 });
 
 function ligarBotoes() {
-  $("btn-janela").addEventListener("click", abrirJanela);
+  const acao = (id, executar) => $(id).addEventListener("click", () => executarComAviso(executar));
+  acao("btn-explorar", ACOES.MostrarFormula.executar);
+  acao("btn-dependentes", ACOES.RastrearDependentes.executar);
+  acao("btn-fluxo", ACOES.FluxoCalculo.executar);
+  acao("btn-voltar-exploracao", ACOES.VoltarExploracao.executar);
+  acao("btn-remover-cores", () => LupaCores.limpar({ todas: true }));
+  acao("btn-fixar-cores", () => LupaCores.fixar());
   $("btn-voltar").addEventListener("click", voltar);
   $("btn-atualizar").addEventListener("click", () => {
     atualizar();
     diagnosticar();
   });
   $("btn-copiar").addEventListener("click", copiarDiagnostico);
+  $("btn-salvar-atalhos").addEventListener("click", salvarAtalhos);
+  $("btn-restaurar-atalhos").addEventListener("click", restaurarAtalhos);
 }
 
-// ---------- Atalhos ----------
-
-function registrarAtalhos() {
-  if (!Office.actions || typeof Office.actions.associate !== "function") {
-    registrarEvento("Office.actions indisponível: os atalhos não vão funcionar nesta versão");
-    return;
-  }
-  for (const [acao, { tecla, executar }] of Object.entries(ACOES)) {
-    Office.actions.associate(acao, () => {
-      registrarEvento(`atalho ${tecla} recebido`);
-      $("ultimo-atalho").textContent = `Último atalho: ${tecla} às ${hora()}`;
-      return executar();
-    });
+async function executarComAviso(executar) {
+  try {
+    await executar();
+  } catch (e) {
+    aviso(`Não deu certo: ${descreverErro(e)}`);
+    registrarEvento(`erro: ${descreverErro(e)}`);
   }
 }
 
@@ -82,140 +83,78 @@ async function mostrarPainel() {
   await atualizar();
 }
 
-// ---------- Janela da fórmula ----------
+// ---------- Atalhos ----------
 
-async function abrirJanela() {
-  janela.historico = [];
-  if (!janela.dialogo && !janela.abrindo) abrirDialogo();
-  await recarregarJanela(null);
-}
-
-function abrirDialogo() {
-  janela.abrindo = true;
-  janela.pronta = false;
-  const url = new URL(`janela.html?v=${VERSAO}`, location.href).href;
-  Office.context.ui.displayDialogAsync(url, { ...TAMANHO_JANELA, displayInIframe: false }, (resultado) => {
-    janela.abrindo = false;
-    if (resultado.status !== Office.AsyncResultStatus.Succeeded) {
-      registrarEvento(`não consegui abrir a janela: ${resultado.error.code} ${resultado.error.message}`);
-      aviso("Não consegui abrir a janela da fórmula. Veja o diagnóstico abaixo.");
-      mostrarPainel();
-      return;
-    }
-    janela.dialogo = resultado.value;
-    janela.dialogo.addEventHandler(Office.EventType.DialogMessageReceived, receberDaJanela);
-    janela.dialogo.addEventHandler(Office.EventType.DialogEventReceived, (arg) => {
-      registrarEvento(`janela fechada (${arg.error})`);
-      esquecerJanela();
-      voltarParaCelulaDaJanela();
-    });
-  });
-}
-
-// Lê a célula (ativa, ou o endereço dado), calcula a árvore e manda para a janela.
-async function recarregarJanela(endereco) {
-  try {
-    janela.dados = await LupaExcel.montarDados(endereco);
-  } catch (e) {
-    enviarParaJanela({ tipo: "erro", mensagem: `Não consegui ler a célula: ${descreverErro(e)}` });
+function registrarAtalhos() {
+  if (!Office.actions || typeof Office.actions.associate !== "function") {
+    registrarEvento("Office.actions indisponível: os atalhos não vão funcionar nesta versão");
     return;
   }
-  janela.dados.podeVoltar = janela.historico.length > 0;
-  enviarParaJanela({ tipo: "arvore", dados: janela.dados });
-}
-
-// A janela recém-aberta ainda está carregando: guarda a última mensagem e manda quando ela avisar.
-function enviarParaJanela(msg) {
-  janela.ultima = msg;
-  if (!janela.dialogo || !janela.pronta) return;
-  try {
-    janela.dialogo.messageChild(JSON.stringify(msg));
-  } catch (e) {
-    registrarEvento(`não consegui falar com a janela: ${descreverErro(e)}`);
-  }
-}
-
-async function receberDaJanela(arg) {
-  let msg;
-  try {
-    msg = JSON.parse(arg.message);
-  } catch (e) {
-    return;
-  }
-  switch (msg.tipo) {
-    case "pronta":
-      janela.pronta = true;
-      if (janela.ultima) enviarParaJanela(janela.ultima);
-      break;
-    case "mostrar":
-      await selecionar(msg.endereco);
-      break;
-    case "ir":
-      if (janela.dados) janela.historico.push(janela.dados.celula);
-      if (await selecionar(msg.endereco)) {
-        await recarregarJanela(msg.endereco);
-      } else {
-        janela.historico.pop();
-        enviarParaJanela({ tipo: "erro", mensagem: `Não consegui ir até ${msg.endereco}.` });
-      }
-      break;
-    case "voltar": {
-      const destino = janela.historico.pop();
-      if (destino && (await selecionar(destino))) await recarregarJanela(destino);
-      break;
-    }
-    case "gravar":
-      await gravarDaJanela(msg);
-      break;
-    case "fechar":
-      fecharJanela();
-      await voltarParaCelulaDaJanela();
-      break;
-    default:
-      break;
-  }
-}
-
-async function gravarDaJanela(msg) {
-  if (!janela.dados) return;
-  try {
-    await LupaExcel.gravarFormula(janela.dados.celula, msg.formula);
-  } catch (e) {
-    enviarParaJanela({ tipo: "erro", mensagem: `O Excel não aceitou a fórmula: ${descreverErro(e)}` });
-    return;
-  }
-  registrarEvento(`fórmula gravada em ${janela.dados.celula}`);
-  if (msg.fechar) {
-    fecharJanela();
-    await voltarParaCelulaDaJanela();
-  } else {
-    await recarregarJanela(janela.dados.celula);
-  }
-}
-
-// As linhas clicadas na janela vão mudando a seleção; ao fechar, o Excel volta à célula da janela.
-async function voltarParaCelulaDaJanela() {
-  if (janela.dados) await selecionar(janela.dados.celula);
-}
-
-function fecharJanela() {
-  if (janela.dialogo) {
+  for (const [acao, { tecla, executar }] of Object.entries(ACOES)) {
     try {
-      janela.dialogo.close();
+      Office.actions.associate(acao, () => {
+        registrarEvento(`atalho ${tecla} recebido`);
+        $("ultimo-atalho").textContent = `Último atalho: ${tecla} às ${hora()}`;
+        return executarComAviso(executar);
+      });
     } catch (e) {
-      // a janela já tinha sido fechada
+      registrarEvento(`atalho ${acao} não registrado: ${descreverErro(e)}`);
     }
   }
-  esquecerJanela();
 }
 
-function esquecerJanela() {
-  janela.dialogo = null;
-  janela.pronta = false;
-  janela.ultima = null;
+// Só lista as ações que o Office conhece: uma versão antiga do shortcuts.json em cache não tem as novas.
+async function mostrarAtalhos() {
+  const caixa = $("atalhos");
+  caixa.replaceChildren();
+  if (!Office.context.requirements.isSetSupported("KeyboardShortcuts", "1.1")) {
+    caixa.textContent = "Esta versão do Excel não deixa trocar os atalhos.";
+    return;
+  }
+  let atuais = {};
+  try {
+    atuais = await Office.actions.getShortcuts();
+  } catch (e) {
+    caixa.textContent = `Não consegui ler os atalhos: ${descreverErro(e)}`;
+    return;
+  }
+  for (const [acao, { descricao, tecla }] of Object.entries(ACOES)) {
+    if (!(acao in atuais)) continue;
+    const linha = elemento("label");
+    const campo = document.createElement("input");
+    campo.value = atuais[acao] || "";
+    campo.placeholder = tecla;
+    campo.dataset.acao = acao;
+    linha.append(elemento("span", null, descricao), campo);
+    caixa.append(linha);
+  }
 }
 
-// ---------- Leitura da célula, precedentes e dependentes ----------
+async function salvarAtalhos() {
+  const novos = {};
+  for (const campo of $("atalhos").querySelectorAll("input")) novos[campo.dataset.acao] = campo.value.trim() || null;
+  try {
+    await Office.actions.replaceShortcuts(novos);
+    $("atalhos-msg").textContent = "Atalhos salvos.";
+  } catch (e) {
+    $("atalhos-msg").textContent = `O Office não aceitou: ${descreverErro(e)}`;
+  }
+  mostrarAtalhos();
+}
+
+async function restaurarAtalhos() {
+  const padroes = {};
+  for (const campo of $("atalhos").querySelectorAll("input")) padroes[campo.dataset.acao] = null;
+  try {
+    await Office.actions.replaceShortcuts(padroes);
+    $("atalhos-msg").textContent = "Atalhos de volta ao padrão.";
+  } catch (e) {
+    $("atalhos-msg").textContent = `O Office não aceitou: ${descreverErro(e)}`;
+  }
+  mostrarAtalhos();
+}
+
+// ---------- Leitura da célula, precedentes e dependentes (painel) ----------
 
 async function atualizar() {
   const rodada = ++estado.rodada;
@@ -257,7 +196,7 @@ async function lerSelecao(context, ativa) {
   try {
     await context.sync();
   } catch (e) {
-    return { alvo: ativa, nota: "Seleção com várias áreas: por enquanto uso só a célula ativa." };
+    return { alvo: ativa, nota: "Seleção com várias áreas: aqui uso só a célula ativa (a janela usa todas)." };
   }
   const nota = sel.cellCount > 1
     ? `Precedentes e dependentes das ${numero(sel.cellCount)} células selecionadas (${Enderecos.semCifrao(sel.address)}).`
@@ -307,54 +246,32 @@ async function detalharCelulas(context, itens) {
   }
 }
 
-// ---------- Navegação ----------
+// ---------- Navegação pelas listas do painel ----------
 
 async function irPara(endereco) {
   const origem = await enderecoAtual();
-  if (await selecionar(endereco) && origem) {
-    estado.historico.push(origem);
-    $("btn-voltar").disabled = false;
+  if (await LupaExcel.selecionar(endereco)) {
+    if (origem) {
+      estado.historico.push(origem);
+      $("btn-voltar").disabled = false;
+    }
+  } else {
+    aviso(`Não consegui ir até ${Enderecos.semCifrao(endereco)}.`);
   }
 }
 
 async function voltar() {
   const destino = estado.historico.pop();
   $("btn-voltar").disabled = estado.historico.length === 0;
-  if (destino) await selecionar(destino);
-}
-
-async function selecionar(endereco) {
-  try {
-    await Excel.run(async (context) => {
-      const { folha, ref } = Enderecos.separar(endereco);
-      const aba = folha
-        ? context.workbook.worksheets.getItem(folha)
-        : context.workbook.worksheets.getActiveWorksheet();
-      aba.activate();
-      aba.getRange(ref).select();
-      await context.sync();
-    });
-    return true;
-  } catch (e) {
-    aviso(`Não consegui ir até ${Enderecos.semCifrao(endereco)}: ${descreverErro(e)}`);
-    return false;
-  }
+  if (destino) await LupaExcel.selecionar(destino);
 }
 
 async function enderecoAtual() {
-  for (const ler of [(wb) => wb.getSelectedRange(), (wb) => wb.getActiveCell()]) {
-    try {
-      return await Excel.run(async (context) => {
-        const r = ler(context.workbook);
-        r.load("address");
-        await context.sync();
-        return r.address;
-      });
-    } catch (e) {
-      // tenta a próxima forma de ler a posição atual
-    }
+  try {
+    return (await LupaExcel.lerSelecao()).enderecos.join(",");
+  } catch (e) {
+    return null;
   }
-  return null;
 }
 
 // ---------- Exibição ----------
@@ -431,9 +348,13 @@ async function diagnosticarAtalhos(linhas) {
   if (!Office.context.requirements.isSetSupported("KeyboardShortcuts", "1.1")) return;
   try {
     const atuais = await Office.actions.getShortcuts();
-    for (const [acao, tecla] of Object.entries(atuais)) {
-      const ativo = tecla !== null;
-      linhas.push([`Atalho ${acao}`, ativo ? tecla : "desativado (conflito resolvido para outra ação)", ativo]);
+    for (const acao of Object.keys(ACOES)) {
+      if (!(acao in atuais)) {
+        linhas.push([`Atalho ${acao}`, "o Office ainda não carregou esta ação", false]);
+        continue;
+      }
+      const tecla = atuais[acao];
+      linhas.push([`Atalho ${acao}`, tecla === null ? "desativado (conflito resolvido para outra ação)" : tecla, tecla !== null]);
     }
   } catch (e) {
     linhas.push(["Leitura dos atalhos", `erro: ${descreverErro(e)}`, false]);

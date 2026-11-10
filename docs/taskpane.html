@@ -5,18 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Lupa de Fórmulas</title>
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <link rel="stylesheet" href="taskpane.css?v=0.2.1">
+  <link rel="stylesheet" href="taskpane.css?v=0.3.0">
 </head>
 <body>
   <header>
     <h1>Lupa de Fórmulas</h1>
-    <span class="versao">protótipo 0.2.1</span>
+    <span class="versao">protótipo 0.3.0</span>
   </header>
   <p id="ultimo-atalho" class="ultimo">Nenhum atalho recebido ainda.</p>
   <div id="aviso" class="aviso" hidden></div>
 
+  <div class="acoes">
+    <button id="btn-explorar">Fórmula ou precedentes <kbd>Ctrl+Q</kbd></button>
+    <button id="btn-dependentes">Dependentes <kbd>Ctrl+Shift+Q</kbd></button>
+    <button id="btn-fluxo">Fluxo de cálculo <kbd>Ctrl+Shift+F</kbd></button>
+    <button id="btn-voltar-exploracao">Voltar à exploração anterior <kbd>Ctrl+Shift+Z</kbd></button>
+  </div>
   <div class="botoes">
-    <button id="btn-janela">Janela da fórmula (Ctrl+Q)</button>
+    <button id="btn-remover-cores" title="Tira da planilha todas as cores postas pela Lupa">Remover cores</button>
+    <button id="btn-fixar-cores" title="Transforma as cores da Lupa em preenchimento normal das células">Fixar cores</button>
   </div>
 
   <section>
@@ -45,6 +52,17 @@
     <button id="btn-atualizar">Atualizar</button>
   </div>
 
+  <details>
+    <summary>Atalhos</summary>
+    <p class="nota">No Mac, "Ctrl" é a tecla Control. Exemplos: Ctrl+Q, Ctrl+Shift+Q, Ctrl+Alt+Shift+L.</p>
+    <div id="atalhos" class="atalhos"></div>
+    <div class="botoes">
+      <button id="btn-salvar-atalhos">Salvar atalhos</button>
+      <button id="btn-restaurar-atalhos">Restaurar padrões</button>
+    </div>
+    <span id="atalhos-msg" class="nota"></span>
+  </details>
+
   <details open>
     <summary>Diagnóstico (para o teste)</summary>
     <ul id="diag-lista" class="diag"></ul>
@@ -53,11 +71,17 @@
     <span id="copiado" class="nota"></span>
   </details>
 
-  <script src="enderecos.js?v=0.2.1"></script>
-  <script src="argumentos.js?v=0.2.1"></script>
-  <script src="formula.js?v=0.2.1"></script>
-  <script src="avaliador.js?v=0.2.1"></script>
-  <script src="excel.js?v=0.2.1"></script>
-  <script src="taskpane.js?v=0.2.1"></script>
+  <script src="enderecos.js?v=0.3.0"></script>
+  <script src="blocos.js?v=0.3.0"></script>
+  <script src="argumentos.js?v=0.3.0"></script>
+  <script src="formula.js?v=0.3.0"></script>
+  <script src="avaliador.js?v=0.3.0"></script>
+  <script src="fluxo.js?v=0.3.0"></script>
+  <script src="excel.js?v=0.3.0"></script>
+  <script src="cores.js?v=0.3.0"></script>
+  <script src="rastreio.js?v=0.3.0"></script>
+  <script src="fluxo-excel.js?v=0.3.0"></script>
+  <script src="janela-controle.js?v=0.3.0"></script>
+  <script src="taskpane.js?v=0.3.0"></script>
 </body>
 </html>

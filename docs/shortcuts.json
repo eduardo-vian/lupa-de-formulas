@@ -3,7 +3,22 @@
     {
       "id": "MostrarFormula",
       "type": "ExecuteFunction",
-      "name": "Lupa: janela da fórmula"
+      "name": "Lupa: explorar fórmula ou precedentes"
+    },
+    {
+      "id": "RastrearDependentes",
+      "type": "ExecuteFunction",
+      "name": "Lupa: rastrear dependentes"
+    },
+    {
+      "id": "FluxoCalculo",
+      "type": "ExecuteFunction",
+      "name": "Lupa: fluxo de cálculo"
+    },
+    {
+      "id": "VoltarExploracao",
+      "type": "ExecuteFunction",
+      "name": "Lupa: voltar à exploração anterior"
     },
     {
       "id": "MostrarFormulaReserva",
@@ -12,13 +27,10 @@
     }
   ],
   "shortcuts": [
-    {
-      "action": "MostrarFormula",
-      "key": { "default": "Ctrl+Q" }
-    },
-    {
-      "action": "MostrarFormulaReserva",
-      "key": { "default": "Ctrl+Alt+Shift+F" }
-    }
+    { "action": "MostrarFormula", "key": { "default": "Ctrl+Q" } },
+    { "action": "RastrearDependentes", "key": { "default": "Ctrl+Shift+Q" } },
+    { "action": "FluxoCalculo", "key": { "default": "Ctrl+Shift+F" } },
+    { "action": "VoltarExploracao", "key": { "default": "Ctrl+Shift+Z" } },
+    { "action": "MostrarFormulaReserva", "key": { "default": "Ctrl+Alt+Shift+F" } }
   ]
 }

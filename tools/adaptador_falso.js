@@ -3,7 +3,8 @@ const E = require("../docs/enderecos.js");
 
 const LIMITE_VALORES = 20000;
 
-// celulas: { "Modelo!A1": 10, ... }   nomes: { RECEITA: "Premissas!C2" ou um número }
+// celulas: { "Modelo!A1": 10, ... }
+// nomes: { RECEITA: "Premissas!C2", TAXA: 0.5, MARGEM: { ref: "Premissas!C3", formula: "=Premissas!$C$3" } }
 function criarAdaptador(celulas = {}, nomes = {}) {
   function celula(folha, linha, coluna) {
     const v = celulas[`${folha}!${E.numeroParaColuna(coluna)}${linha}`];
@@ -49,8 +50,10 @@ function criarAdaptador(celulas = {}, nomes = {}) {
       if (alvo === undefined) resultado.set(p.chave, { t: "erro", v: "#NAME?" });
       else if (typeof alvo === "number") resultado.set(p.chave, { t: "num", v: alvo });
       else {
-        const { folha, ref } = E.separar(alvo);
-        resultado.set(p.chave, lerRef(folha, ref));
+        const { folha, ref } = E.separar(typeof alvo === "string" ? alvo : alvo.ref);
+        const val = lerRef(folha, ref);
+        if (alvo.formula) val.definicao = alvo.formula;
+        resultado.set(p.chave, val);
       }
     }
     return resultado;

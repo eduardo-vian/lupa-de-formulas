@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 from openpyxl import Workbook
+from openpyxl.workbook.defined_name import DefinedName
+from openpyxl.worksheet.datavalidation import DataValidation
 
 RAIZ = Path(__file__).resolve().parent.parent
 
@@ -51,7 +53,40 @@ def main():
     virgula = wb.create_sheet("Resumo, v2")
     virgula["A1"], virgula["B1"] = "Receita ano 2 + EBITDA", "=Modelo!B3+Modelo!B4"
 
+    # Uma fórmula de cada recurso da janela (funções novas do Excel levam o prefixo _xlfn. no arquivo).
+    casos = wb.create_sheet("Casos")
+    for linha, (letra, valor) in enumerate([("a", 10), ("b", 20), ("c", 30)], start=1):
+        casos.cell(row=linha, column=1, value=letra)
+        casos.cell(row=linha, column=2, value=valor)
+    exemplos = [
+        ("PROCV exato", '=VLOOKUP("b",A1:B3,2,FALSE)'),
+        ("SE: ramo em negrito", '=IF(B1>15,"alto","baixo")'),
+        ("SOMASES: células filtradas", '=SUMIFS(B1:B3,A1:A3,"<>b")'),
+        ("ÍNDICE", "=INDEX(B1:B3,3)"),
+        ("CORRESP", '=MATCH("c",A1:A3,0)'),
+        ("MÁXIMO", "=MAX(B1:B3)"),
+        ("Nome definido Taxa", "=Taxa*2"),
+        ("Validação: lista A1:A3", "a"),
+        ("PROCX", '=_xlfn.XLOOKUP("c",A1:A3,B1:B3)'),
+        ("SES", '=_xlfn.IFS(A1="z",1,A2="b",2)'),
+    ]
+    for linha, (rotulo, formula) in enumerate(exemplos, start=1):
+        casos.cell(row=linha, column=3, value=rotulo)
+        casos.cell(row=linha, column=4, value=formula)
+    lista = DataValidation(type="list", formula1="$A$1:$A$3", allow_blank=True)
+    casos.add_data_validation(lista)
+    lista.add("D8")
+    taxa = DefinedName("Taxa", attr_text="Casos!$B$2")
+    try:
+        wb.defined_names["Taxa"] = taxa  # openpyxl 3.1+
+    except TypeError:
+        wb.defined_names.append(taxa)  # versões antigas
+    casos.column_dimensions["C"].width = 28
+    casos.column_dimensions["D"].width = 14
+
     for aba in wb.worksheets:
+        if aba.title == "Casos":
+            continue
         aba.column_dimensions["A"].width = 26
         aba.column_dimensions["B"].width = 16
     modelo.column_dimensions["N"].width = 16

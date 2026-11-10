@@ -42,9 +42,10 @@ body {
   background: var(--fundo);
 }
 
-.barra { display: flex; align-items: center; gap: 8px; }
-.titulo { font-weight: 600; }
-.dica { margin-left: auto; color: var(--suave); font-size: 11px; }
+.barra { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.titulo { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dica { margin-left: auto; color: var(--suave); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.nota { color: var(--suave); font-size: 11px; margin: 0; }
 
 .grade {
   flex: 1 1 auto;
@@ -55,7 +56,7 @@ body {
 }
 .grade:focus-visible { box-shadow: 0 0 0 2px rgba(10, 100, 216, .35); }
 
-.cab, .linha { display: grid; grid-template-columns: minmax(150px, 1fr) 120px 120px 90px; }
+.cab, .linha { display: grid; grid-template-columns: minmax(150px, 1fr) 120px 120px 110px; }
 .cab {
   position: sticky;
   top: 0;
@@ -69,7 +70,9 @@ body {
 .linha .valor, .linha .local { font-variant-numeric: tabular-nums; }
 .linha { cursor: default; }
 .linha.sel { background: var(--sel); color: var(--sel-texto); }
+.linha.cursor { outline: 1px dotted var(--sel); outline-offset: -1px; }
 .linha.omitido:not(.sel) { color: var(--omitido); }
+.linha.escolhido .txt { font-weight: 700; }
 
 .elemento { display: flex; align-items: center; gap: 4px; }
 .exp {
@@ -85,6 +88,8 @@ body {
   cursor: pointer;
 }
 .exp.vazio { border-color: transparent; background: transparent; cursor: default; }
+.amostra { flex: none; width: 12px; height: 12px; border: 1px solid var(--suave); cursor: pointer; }
+.amostra.apagada { opacity: .2; }
 .txt { overflow: hidden; text-overflow: ellipsis; }
 
 .editor { position: relative; flex: none; height: 76px; border: 1px solid var(--borda); }
@@ -101,6 +106,23 @@ body {
 .realce { color: transparent; pointer-events: none; }
 .realce mark { color: transparent; background: var(--marca); border-bottom: 2px solid var(--sel); }
 #formula { border: none; resize: none; outline: none; background: transparent; color: var(--texto); }
+#formula[readonly] { color: var(--suave); }
+
+.abas { display: flex; gap: 4px; }
+.abas[hidden] { display: none; }
+.aba.ativa { background: var(--sel); border-color: var(--sel); color: var(--sel-texto); }
+
+.fluxo-form { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; }
+.fluxo-form[hidden] { display: none; }
+.fluxo-form fieldset { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 6px 10px; border: 1px solid var(--borda); }
+.fluxo-form legend { font-weight: 600; }
+
+/* Cada modo mostra só o que faz sentido para ele. */
+body[data-etapa="escolher"] .grade,
+body[data-etapa="escolher"] .editor,
+body[data-modo="fluxo"] .editor { display: none; }
+body:not([data-modo="formula"]) #btn-aplicar { display: none; }
+body[data-modo="formula"] .so-cores { display: none; }
 
 .mensagem { font-size: 11px; color: var(--suave); }
 .mensagem.erro { color: var(--erro); }
@@ -114,6 +136,8 @@ button {
   border-radius: 3px;
   background: var(--botao);
   color: var(--texto);
+  white-space: nowrap;
+  flex: none;
 }
 button.primario { border-color: var(--sel); background: var(--sel); color: var(--sel-texto); min-width: 72px; }
 button:disabled { opacity: .5; }
@@ -126,7 +150,7 @@ button:disabled { opacity: .5; }
   z-index: 2;
   display: flex;
   flex-direction: column;
-  min-width: 160px;
+  min-width: 240px;
   background: var(--fundo);
   border: 1px solid var(--borda);
   box-shadow: 0 4px 12px rgba(0, 0, 0, .2);

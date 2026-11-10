@@ -88,9 +88,9 @@ async function principal() {
   assert.equal(desloc.formula.slice(soma.ini, soma.fim), "SOMA(O111:DESLOC(O116;-1;;;))");
   const intervalo = soma.filhos[0];
   assert.equal(desloc.formula.slice(intervalo.ini, intervalo.fim), "O111:DESLOC(O116;-1;;;)");
-  assert.equal(intervalo.filhos[1].navegar, "Modelo!O115");
-  assert.equal(intervalo.filhos[0].navegar, "Modelo!O111");
   // "alvo": o que o Excel seleciona quando a linha é clicada na janela.
+  assert.equal(intervalo.filhos[1].alvo, "Modelo!O115");
+  assert.equal(intervalo.filhos[0].alvo, "Modelo!O111");
   assert.equal(desloc.arvore.alvo, "Modelo!O110");
   assert.equal(soma.alvo, "Modelo!O111:O115");
   assert.equal(intervalo.filhos[1].filhos[0].alvo, "Modelo!O116");
@@ -113,7 +113,7 @@ async function principal() {
     ...SOMA_SIMPLES, ref: "B9", texto: "", formula: "=VLOOKUP(Premissas!C2,A1:B3,2)", formulaLocal: "=PROCV(Premissas!C2;A1:B3;2)",
   }, criarAdaptador(CELULAS));
   assert.deepEqual(achatar(procv.arvore).slice(1), [
-    [1, "PROCV", "", "—", "várias abas"],
+    [1, "PROCV", "", "#N/D", "várias abas"],
     [2, "Premissas!C2", "valor_procurado", "0,10", "Premissas!C2"],
     [2, "A1:B3", "matriz_tabela", "1.000", "A1:B3"],
     [2, "2", "núm_índice_coluna", "2", ""],
@@ -127,6 +127,47 @@ async function principal() {
   const semFormula = await Av.montarDados({ ...SOMA_SIMPLES, formula: 42, formulaLocal: 42 }, criarAdaptador(CELULAS));
   assert.equal(semFormula.formula, "42");
   assert.match(semFormula.aviso, /não tem fórmula/);
+
+  // ---------- Ramo escolhido, buscas, filtros, nomes e validação ----------
+  const BUSCA = { "Modelo!A1": "a", "Modelo!A2": "b", "Modelo!A3": "c", "Modelo!B1": 10, "Modelo!B2": 20, "Modelo!B3": 30 };
+  const montar = (formula, formulaLocal, extra = {}, nomes = {}) =>
+    Av.montarDados({ ...SOMA_SIMPLES, ref: "D1", texto: "", formula, formulaLocal, ...extra }, criarAdaptador(BUSCA, nomes));
+  const topo = (dados) => dados.arvore.filhos[0];
+  const resumo = (no) => [no.valor, no.local, no.alvo];
+
+  assert.deepEqual(resumo(topo(await montar('=VLOOKUP("b",A1:B3,2,FALSE)', '=PROCV("b";A1:B3;2;FALSO)'))), ["20,00", "B2", "Modelo!B2"]);
+  assert.deepEqual(resumo(topo(await montar("=VLOOKUP(25,B1:B3,1)", "=PROCV(25;B1:B3;1)"))), ["20,00", "B2", "Modelo!B2"]);
+  assert.deepEqual(resumo(topo(await montar("=INDEX(B1:B3,3)", "=ÍNDICE(B1:B3;3)"))), ["30,00", "B3", "Modelo!B3"]);
+  assert.deepEqual(resumo(topo(await montar('=MATCH("c",A1:A3,0)', '=CORRESP("c";A1:A3;0)'))), ["3", "A3", "Modelo!A3"]);
+  assert.deepEqual(resumo(topo(await montar('=XLOOKUP("c",A1:A3,B1:B3)', '=PROCX("c";A1:A3;B1:B3)'))), ["30,00", "B3", "Modelo!B3"]);
+  assert.equal(topo(await montar('=XLOOKUP("z",A1:A3,B1:B3,"nada")', '=PROCX("z";A1:A3;B1:B3;"nada")')).valor, "nada");
+  assert.deepEqual(resumo(topo(await montar("=XLOOKUP(25,B1:B3,A1:A3,,1)", "=PROCX(25;B1:B3;A1:A3;;1)"))), ["c", "A3", "Modelo!A3"]);
+  assert.deepEqual(resumo(topo(await montar('=MATCH("b*",A1:A3,0)', '=CORRESP("b*";A1:A3;0)'))), ["2", "A2", "Modelo!A2"]);
+
+  const ses = topo(await montar('=IFS(A1="z",1,A2="b",2)', '=SES(A1="z";1;A2="b";2)'));
+  assert.deepEqual([ses.valor, ses.filhos.map((f) => f.escolhido)], ["2", [false, false, false, true]]);
+  const se = topo(await montar('=IF(B1>15,"alto","baixo")', '=SE(B1>15;"alto";"baixo")'));
+  assert.deepEqual([se.valor, se.filhos.map((f) => f.escolhido)], ["baixo", [false, false, true]]);
+  const parametro = topo(await montar('=SWITCH(A2,"a",1,"b",2,9)', '=PARÂMETRO(A2;"a";1;"b";2;9)'));
+  assert.deepEqual([parametro.valor, parametro.filhos[4].escolhido, parametro.filhos[1].info], ["2", true, "valor1"]);
+  const escolher = topo(await montar("=CHOOSE(2,B1,B2,B3)", "=ESCOLHER(2;B1;B2;B3)"));
+  assert.deepEqual([escolher.valor, escolher.alvo, escolher.filhos[2].escolhido], ["20,00", "Modelo!B2", true]);
+
+  assert.deepEqual(resumo(topo(await montar('=SUMIFS(B1:B3,A1:A3,"<>b")', '=SOMASES(B1:B3;A1:A3;"<>b")'))).slice(1), ["2 células", "Modelo!B1,Modelo!B3"]);
+  assert.deepEqual(resumo(topo(await montar("=SUMIF(B1:B3,\">=20\")", "=SOMASE(B1:B3;\">=20\")"))).slice(1), ["B2:B3", "Modelo!B2:B3"]);
+  assert.deepEqual(resumo(topo(await montar("=MAX(B1:B3)", "=MÁXIMO(B1:B3)"))), ["30", "B3", "Modelo!B3"]);
+  assert.equal(topo(await montar('=COUNTIF(A1:A3,"?")', '=CONT.SE(A1:A3;"?")')).local, "A1:A3");
+
+  const comNome = topo(await montar("=Taxa*2", "=Taxa*2", {}, { TAXA: { ref: "Modelo!B2", formula: "=Modelo!$B$2" } }));
+  const nome = comNome.filhos[0];
+  assert.deepEqual([comNome.valor, nome.elemento, nome.valor, nome.alvo], ["40", "Taxa", "20,00", "Modelo!B2"]);
+  assert.deepEqual([nome.filhos[0].elemento, nome.filhos[0].info, nome.filhos[0].valor], ["Modelo!$B$2", "definição", "20,00"]);
+
+  const validada = await montar("=B1", "=B1", { validacao: { tipo: "List", regra: { list: { source: "=$A$1:$A$3" } } } });
+  const validacao = validada.arvore.filhos[1];
+  assert.deepEqual([validacao.elemento, validacao.local, validacao.alvo], ["Validação: lista", "A1:A3", "Modelo!A1:A3"]);
+  const inline = await montar("=B1", "=B1", { validacao: { tipo: "List", regra: { list: { source: "sim,não" } } } });
+  assert.equal(inline.arvore.filhos[1].valor, "sim,não");
 
   console.log("formula.js e avaliador.js: todos os testes passaram");
 }

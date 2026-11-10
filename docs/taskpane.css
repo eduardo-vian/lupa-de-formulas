@@ -63,3 +63,16 @@ summary { cursor: pointer; font-weight: 600; }
 .diag .nome { flex: 1; }
 .diag .valor { text-align: right; color: var(--cinza); word-break: break-all; }
 textarea { width: 100%; font: 11px Menlo, Consolas, monospace; margin-bottom: 6px; }
+
+.acoes { display: grid; gap: 6px; padding-bottom: 8px; }
+.acoes button {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 6px 10px; border: 1px solid #8a8886; border-radius: 4px; background: #fff;
+  text-align: left; cursor: pointer;
+}
+.acoes button:hover, .botoes button:hover { background: #f3f2f1; }
+kbd { font: 11px Menlo, Consolas, monospace; color: var(--cinza); }
+
+.atalhos { display: grid; gap: 4px; margin: 6px 0; }
+.atalhos label { display: grid; grid-template-columns: 1fr 130px; gap: 6px; align-items: center; }
+.atalhos input { font: 12px Menlo, Consolas, monospace; padding: 2px 4px; }

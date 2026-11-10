@@ -8,13 +8,19 @@
   const E = carregar("Enderecos", "./enderecos.js");
   const F = carregar("Formula", "./formula.js");
   const A = carregar("Argumentos", "./argumentos.js");
+  const B = carregar("Blocos", "./blocos.js");
 
   const MAX_RODADAS = 60;
+  const MAX_PROFUNDIDADE_NOMES = 3; // nome dentro de nome dentro de nome...
   const ERROS_PT = {
     "#N/A": "#N/D", "#VALUE!": "#VALOR!", "#NAME?": "#NOME?",
     "#NUM!": "#NÚM!", "#NULL!": "#NULO!", "#SPILL!": "#DESPEJAR!",
   };
   const COMPARACOES = ["=", "<>", "<", ">", "<=", ">="];
+  const TIPOS_VALIDACAO = {
+    List: "lista", WholeNumber: "número inteiro", Decimal: "decimal", Date: "data",
+    Time: "hora", TextLength: "tamanho do texto", Custom: "personalizada",
+  };
 
   // ---------- Valores ----------
   // num, txt, bool, erro, vazio, ref (intervalo lido do Excel) e nd (não deu para calcular).
@@ -27,6 +33,7 @@
   const VAZIO = { t: "vazio" };
 
   const ehPt = (idioma) => /^pt/i.test(idioma || "");
+  const ruim = (v) => v.t === "erro" || v.t === "nd";
 
   // Intervalo de uma célula vira o valor da célula; intervalo maior não tem valor único.
   function escalar(val) {
@@ -79,6 +86,13 @@
     }
   }
 
+  // Inteiro de um argumento; argumento ausente ou vazio vira o padrão.
+  function inteiroOu(val, padrao) {
+    if (val === undefined || val.t === "vazio") return padrao;
+    const n = numero(val);
+    return typeof n === "number" ? Math.trunc(n) : n;
+  }
+
   function aplicarOperador(op, a, b, idioma) {
     if (op === "&") {
       const x = texto(a, idioma);
@@ -108,7 +122,7 @@
   function comparar(op, a, b, idioma) {
     let x = escalar(a);
     let y = escalar(b);
-    for (const v of [x, y]) if (v.t === "erro" || v.t === "nd") return v;
+    for (const v of [x, y]) if (ruim(v)) return v;
     if (x.t === "vazio") x = vazioComo(y);
     if (y.t === "vazio") y = vazioComo(x);
     const ordem = { num: 0, txt: 1, bool: 2 };
@@ -116,7 +130,7 @@
     if (x.t !== y.t) c = ordem[x.t] - ordem[y.t];
     else if (x.t === "txt") c = x.v.localeCompare(y.v, idioma || undefined, { sensitivity: "base" });
     else c = Number(x.v) - Number(y.v);
-    return bool({ "=": c === 0, "<>": c !== 0, "<": c < 0, ">": c > 0, "<=": c <= 0, ">=": c >= 0 }[op]);
+    return bool(comparaNum(op, c, 0));
   }
 
   function vazioComo(outro) {
@@ -125,27 +139,250 @@
     return num(0);
   }
 
+  function comparaNum(op, a, b) {
+    switch (op) {
+      case "=": return a === b;
+      case "<>": return a !== b;
+      case "<": return a < b;
+      case ">": return a > b;
+      case "<=": return a <= b;
+      case ">=": return a >= b;
+      default: return false;
+    }
+  }
+
+  // ---------- Busca (PROCV, PROCH, CORRESP, PROCX, CORRESPX) ----------
+
+  const escapar = (ch) => ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Curingas do Excel: * qualquer sequência, ? um caractere, ~ antes de * ? ~ para o próprio caractere.
+  function curinga(padrao) {
+    let re = "";
+    for (let i = 0; i < padrao.length; i++) {
+      const ch = padrao[i];
+      if (ch === "~" && i + 1 < padrao.length) re += escapar(padrao[++i]);
+      else re += ch === "*" ? "[\\s\\S]*" : ch === "?" ? "[\\s\\S]" : escapar(ch);
+    }
+    return new RegExp(`^${re}$`, "iu");
+  }
+
+  const mesmoTipo = (a, b) => a.t === b.t && (a.t === "num" || a.t === "txt" || a.t === "bool");
+
+  function cmp(a, b) {
+    return a.t === "txt" ? a.v.localeCompare(b.v, undefined, { sensitivity: "base" }) : Number(a.v) - Number(b.v);
+  }
+
+  function iguaisNaBusca(x, v, comCuringa) {
+    if (!mesmoTipo(x, v)) return false;
+    if (x.t === "txt") return comCuringa ? curinga(v.v).test(x.v) : cmp(x, v) === 0;
+    return x.v === v.v;
+  }
+
+  // modo: "exato", "curinga", "crescente" (maior valor <= procurado, dados em ordem crescente)
+  // ou "decrescente" (menor valor >= procurado, dados em ordem decrescente). Devolve o índice ou -1.
+  function procurar(lista, v, modo) {
+    if (modo === "exato" || modo === "curinga") {
+      return lista.findIndex((x) => iguaisNaBusca(x, v, modo === "curinga"));
+    }
+    let candidato = -1;
+    for (let i = 0; i < lista.length; i++) {
+      if (!mesmoTipo(lista[i], v)) continue;
+      const c = cmp(lista[i], v);
+      if (modo === "crescente" ? c <= 0 : c >= 0) candidato = i;
+      else break;
+    }
+    return candidato;
+  }
+
+  // PROCX/CORRESPX: modo 0 exato, -1 exato ou o próximo menor, 1 exato ou o próximo maior, 2 curinga.
+  function procurarX(lista, ordem, v, modo) {
+    for (const i of ordem) if (iguaisNaBusca(lista[i], v, modo === 2)) return i;
+    if (modo !== -1 && modo !== 1) return -1;
+    let melhor = -1;
+    for (const i of ordem) {
+      if (!mesmoTipo(lista[i], v)) continue;
+      const c = cmp(lista[i], v);
+      if (modo === -1 ? c >= 0 : c <= 0) continue;
+      if (melhor < 0 || (modo === -1 ? cmp(lista[i], lista[melhor]) > 0 : cmp(lista[i], lista[melhor]) < 0)) melhor = i;
+    }
+    return melhor;
+  }
+
+  // i-ésima célula de um vetor (coluna ou linha).
+  function celulaEm(ref, i) {
+    const vertical = ref.c1 === ref.c2;
+    return { folha: ref.folha, r: vertical ? ref.r1 + i : ref.r1, c: vertical ? ref.c1 : ref.c1 + i };
+  }
+
+  function lerCelula(folha, r, c) {
+    return { ler: { folha, ref: E.formatarRef({ r1: r, c1: c, r2: r, c2: c }) } };
+  }
+
+  function procv(args, sentido) {
+    const [valor, tabela, indice, aproximado] = args;
+    if (!tabela) return erro("#VALUE!");
+    if (ruim(tabela)) return tabela;
+    if (tabela.t !== "ref" || !tabela.celulas) return { excel: true };
+    const v = escalar(valor || VAZIO);
+    if (ruim(v)) return v;
+    const n = inteiroOu(indice, 0);
+    if (typeof n !== "number") return n;
+    const tamanho = sentido === "linha" ? tabela.c2 - tabela.c1 + 1 : tabela.r2 - tabela.r1 + 1;
+    if (n < 1) return erro("#VALUE!");
+    if (n > tamanho) return erro("#REF!");
+    // 4º argumento ausente = VERDADEIRO (aproximado); presente e vazio = FALSO (exato).
+    const exato = aproximado === undefined ? false : aproximado.t === "vazio" || logico(aproximado) === false;
+    const lista = sentido === "linha" ? tabela.celulas.map((linha) => linha[0]) : tabela.celulas[0];
+    const i = procurar(lista, v, exato ? "curinga" : "crescente");
+    if (i < 0) return erro("#N/A");
+    return sentido === "linha"
+      ? lerCelula(tabela.folha, tabela.r1 + i, tabela.c1 + n - 1)
+      : lerCelula(tabela.folha, tabela.r1 + n - 1, tabela.c1 + i);
+  }
+
+  function vetor(ref) {
+    if (ref.r1 !== ref.r2 && ref.c1 !== ref.c2) return null;
+    return ref.celulas.flat();
+  }
+
+  // ---------- Critérios (SOMASE, SOMASES, CONT.SES...) ----------
+
+  function numeroDeTexto(s) {
+    const m = /^([+-]?\d+(?:[.,]\d+)?(?:[eE][+-]?\d+)?)(%?)$/.exec(s.trim());
+    if (!m) return null;
+    const n = Number(m[1].replace(",", "."));
+    return m[2] ? n / 100 : n;
+  }
+
+  // Critério do Excel ("<>b", ">=10", "a*", 5...) -> função que testa o valor de uma célula.
+  function criterioDe(val) {
+    const e = escalar(val || VAZIO);
+    if (e.t === "num") return (c) => (c.t === "num" ? c.v === e.v : c.t === "txt" && numeroDeTexto(c.v) === e.v);
+    if (e.t === "bool") return (c) => c.t === "bool" && c.v === e.v;
+    if (e.t === "vazio") return (c) => c.t === "vazio" || (c.t === "txt" && c.v === "");
+    if (e.t !== "txt") return null;
+    const m = /^(<=|>=|<>|<|>|=)?([\s\S]*)$/.exec(e.v);
+    const op = m[1] || "=";
+    const resto = m[2];
+    const n = numeroDeTexto(resto);
+    if (n !== null) return (c) => (c.t === "num" ? comparaNum(op, c.v, n) : op === "<>");
+    if (op === "=" || op === "<>") {
+      const padrao = resto === "" ? null : curinga(resto);
+      const igual = (c) => (padrao ? c.t === "txt" && padrao.test(c.v) : c.t === "vazio" || (c.t === "txt" && c.v === ""));
+      return op === "=" ? igual : (c) => !igual(c);
+    }
+    return (c) => c.t === "txt" && comparaNum(op, c.v.localeCompare(resto, undefined, { sensitivity: "base" }), 0);
+  }
+
+  const valorEm = (ref, i, j) => (ref.celulas && ref.celulas[i] && ref.celulas[i][j]) || VAZIO;
+
+  function celulasDe(ref) {
+    const saida = [];
+    ref.celulas.forEach((linha, i) => linha.forEach((v, j) => saida.push({ folha: ref.folha, r: ref.r1 + i, c: ref.c1 + j, v })));
+    return saida;
+  }
+
+  // SOMASE(intervalo; critérios; [intervalo_soma]) e parecidas.
+  function filtroSe(intervalo, criterio, soma) {
+    if (!intervalo || intervalo.t !== "ref" || !intervalo.celulas || !criterio) return null;
+    const teste = criterioDe(criterio);
+    if (!teste) return null;
+    const destino = soma && soma.t === "ref" ? soma : intervalo;
+    const saida = [];
+    intervalo.celulas.forEach((linha, i) => linha.forEach((v, j) => {
+      if (teste(v)) saida.push({ folha: destino.folha, r: destino.r1 + i, c: destino.c1 + j, v: valorEm(destino, i, j) });
+    }));
+    return saida;
+  }
+
+  // SOMASES(destino; intervalo1; critério1; ...): posições que passam em todos os critérios.
+  function filtroSes(destino, pares) {
+    if (!destino || destino.t !== "ref" || !destino.celulas) return null;
+    const testes = [];
+    for (let k = 0; k + 1 < pares.length; k += 2) {
+      const intervalo = pares[k];
+      const teste = criterioDe(pares[k + 1]);
+      if (!intervalo || intervalo.t !== "ref" || !intervalo.celulas || !teste) return null;
+      testes.push({ intervalo, teste });
+    }
+    if (!testes.length) return null;
+    const saida = [];
+    destino.celulas.forEach((linha, i) => linha.forEach((v, j) => {
+      if (testes.every(({ intervalo, teste }) => teste(valorEm(intervalo, i, j)))) {
+        saida.push({ folha: destino.folha, r: destino.r1 + i, c: destino.c1 + j, v });
+      }
+    }));
+    return saida;
+  }
+
+  // Células que têm o maior (ou menor) valor numérico da lista.
+  function extremo(celulas, maior) {
+    if (!celulas) return null;
+    const numeros = celulas.filter((c) => c.v.t === "num");
+    if (!numeros.length) return null;
+    const alvo = numeros.reduce((m, c) => (maior ? Math.max(m, c.v.v) : Math.min(m, c.v.v)), numeros[0].v.v);
+    return numeros.filter((c) => c.v.v === alvo);
+  }
+
+  function celulasNumericas(args) {
+    if (args.some((a) => a.t === "ref" && !a.celulas)) return null;
+    return args.filter((a) => a.t === "ref").flatMap(celulasDe);
+  }
+
+  // Funções que vão para o Excel calcular, mas cujas células "escolhidas" a Lupa destaca.
+  const FILTROS = {
+    SUMIF: (a) => filtroSe(a[0], a[1], a[2]),
+    AVERAGEIF: (a) => filtroSe(a[0], a[1], a[2]),
+    COUNTIF: (a) => filtroSe(a[0], a[1]),
+    SUMIFS: (a) => filtroSes(a[0], a.slice(1)),
+    AVERAGEIFS: (a) => filtroSes(a[0], a.slice(1)),
+    COUNTIFS: (a) => filtroSes(a[0], a),
+    MAXIFS: (a) => extremo(filtroSes(a[0], a.slice(1)), true),
+    MINIFS: (a) => extremo(filtroSes(a[0], a.slice(1)), false),
+    MAX: (a) => extremo(celulasNumericas(a), true),
+    MIN: (a) => extremo(celulasNumericas(a), false),
+  };
+
   // ---------- Funções calculadas pela própria Lupa ----------
-  // As de referência (DESLOC, INDIRETO) e as que escolhem um ramo (SE, SEERRO...) ficam aqui;
-  // o resto vai para o Excel. Uma função pode devolver { ler } quando precisa de outro intervalo.
+  // Devolvem um valor, ou { val, ler, excel, alvos, escolhido }:
+  //   ler: outro intervalo a ler (DESLOC, ÍNDICE, PROCV...)     excel: deixa o Excel calcular
+  //   alvos: células a destacar                                  escolhido: argumento em negrito
 
   const PROPRIAS = {
     IF(args) {
       const c = logico(args[0] || VAZIO);
       if (typeof c !== "boolean") return c;
-      const escolhido = c ? args[1] : args[2];
+      const i = c ? 1 : 2;
+      const escolhido = args[i];
       if (escolhido === undefined) return c ? num(0) : bool(false);
-      return escolhido.t === "vazio" ? num(0) : escolhido;
+      return { val: escolhido.t === "vazio" ? num(0) : escolhido, escolhido: i };
+    },
+    IFS(args) {
+      for (let i = 0; i + 1 < args.length; i += 2) {
+        const c = logico(args[i]);
+        if (typeof c !== "boolean") return c;
+        if (c) return { val: args[i + 1].t === "vazio" ? num(0) : args[i + 1], escolhido: i + 1 };
+      }
+      return erro("#N/A");
+    },
+    SWITCH(args) {
+      const alvo = escalar(args[0] || VAZIO);
+      if (ruim(alvo)) return alvo;
+      for (let i = 1; i + 1 < args.length; i += 2) {
+        const igual = comparar("=", alvo, args[i]);
+        if (igual.t === "bool" && igual.v) return { val: args[i + 1], escolhido: i + 1 };
+      }
+      if (args.length > 1 && (args.length - 1) % 2 === 1) return { val: args[args.length - 1], escolhido: args.length - 1 };
+      return erro("#N/A");
+    },
+    CHOOSE(args) {
+      const k = inteiroOu(args[0] || VAZIO, 0);
+      if (typeof k !== "number") return k;
+      if (k < 1 || k >= args.length) return erro("#VALUE!");
+      return { val: args[k].t === "vazio" ? num(0) : args[k], escolhido: k };
     },
     IFERROR: (args) => seErro(args, () => true),
     IFNA: (args) => seErro(args, (v) => v === "#N/A"),
-    CHOOSE(args) {
-      const i = numero(args[0] || VAZIO);
-      if (typeof i !== "number") return i;
-      const k = Math.trunc(i);
-      if (k < 1 || k >= args.length) return erro("#VALUE!");
-      return args[k].t === "vazio" ? num(0) : args[k];
-    },
     NOT(args) {
       const v = logico(args[0] || VAZIO);
       return typeof v === "boolean" ? bool(!v) : v;
@@ -160,6 +397,61 @@
     ISTEXT: (args) => testarValor(args, (v) => v.t === "txt"),
     OFFSET: deslocar,
     INDIRECT: indireto,
+    INDEX: indice,
+    VLOOKUP: (args) => procv(args, "linha"),
+    HLOOKUP: (args) => procv(args, "coluna"),
+    MATCH(args) {
+      const [valor, matriz, tipo] = args;
+      if (!matriz) return erro("#VALUE!");
+      if (ruim(matriz)) return matriz;
+      if (matriz.t !== "ref" || !matriz.celulas) return { excel: true };
+      const lista = vetor(matriz);
+      if (!lista) return erro("#N/A");
+      const v = escalar(valor || VAZIO);
+      if (ruim(v)) return v;
+      // 3º argumento ausente = 1; presente e vazio = 0.
+      const t = tipo === undefined ? 1 : inteiroOu(tipo, 0);
+      if (typeof t !== "number") return t;
+      const i = procurar(lista, v, t === 0 ? "curinga" : t > 0 ? "crescente" : "decrescente");
+      return i < 0 ? erro("#N/A") : { val: num(i + 1), alvos: [celulaEm(matriz, i)] };
+    },
+    XLOOKUP(args) {
+      const [valor, procura, retorno, seNao, modoArg, buscaArg] = args;
+      if (!procura || !retorno) return erro("#VALUE!");
+      for (const x of [procura, retorno]) if (ruim(x)) return x;
+      if (procura.t !== "ref" || retorno.t !== "ref" || !procura.celulas) return { excel: true };
+      const lista = vetor(procura);
+      if (!lista) return erro("#VALUE!");
+      const v = escalar(valor || VAZIO);
+      if (ruim(v)) return v;
+      const modo = inteiroOu(modoArg, 0);
+      const busca = inteiroOu(buscaArg, 1);
+      for (const n of [modo, busca]) if (typeof n !== "number") return n;
+      const ordem = lista.map((_, k) => (busca < 0 ? lista.length - 1 - k : k));
+      const i = procurarX(lista, ordem, v, modo);
+      if (i < 0) return seNao !== undefined && seNao.t !== "vazio" ? seNao : erro("#N/A");
+      const vertical = procura.c1 === procura.c2;
+      const ret = vertical
+        ? { r1: retorno.r1 + i, r2: retorno.r1 + i, c1: retorno.c1, c2: retorno.c2 }
+        : { r1: retorno.r1, r2: retorno.r2, c1: retorno.c1 + i, c2: retorno.c1 + i };
+      return { ler: { folha: retorno.folha, ref: E.formatarRef(ret) } };
+    },
+    XMATCH(args) {
+      const [valor, procura, modoArg, buscaArg] = args;
+      if (!procura) return erro("#VALUE!");
+      if (ruim(procura)) return procura;
+      if (procura.t !== "ref" || !procura.celulas) return { excel: true };
+      const lista = vetor(procura);
+      if (!lista) return erro("#VALUE!");
+      const v = escalar(valor || VAZIO);
+      if (ruim(v)) return v;
+      const modo = inteiroOu(modoArg, 0);
+      const busca = inteiroOu(buscaArg, 1);
+      for (const n of [modo, busca]) if (typeof n !== "number") return n;
+      const ordem = lista.map((_, k) => (busca < 0 ? lista.length - 1 - k : k));
+      const i = procurarX(lista, ordem, v, modo);
+      return i < 0 ? erro("#N/A") : { val: num(i + 1), alvos: [celulaEm(procura, i)] };
+    },
   };
 
   function seErro(args, condicao) {
@@ -168,9 +460,9 @@
     if (e.t === "nd") return e;
     if (e.t === "erro" && condicao(e.v)) {
       const alternativa = args[1] || VAZIO;
-      return alternativa.t === "vazio" ? num(0) : alternativa;
+      return { val: alternativa.t === "vazio" ? num(0) : alternativa, escolhido: 1 };
     }
-    return v.t === "vazio" ? num(0) : v;
+    return { val: v.t === "vazio" ? num(0) : v, escolhido: 0 };
   }
 
   function testarValor(args, teste) {
@@ -186,7 +478,7 @@
       const valores = a.t === "ref" ? (a.celulas ? a.celulas.flat() : null) : [a];
       if (!valores) return nd("intervalo grande");
       for (const v of valores) {
-        if (v.t === "erro" || v.t === "nd") return v;
+        if (ruim(v)) return v;
         if (v.t === "vazio" || (v.t === "txt" && a.t === "ref")) continue;
         const l = logico(v);
         if (typeof l !== "boolean") return l;
@@ -199,17 +491,12 @@
 
   function deslocar(args) {
     const base = args[0] || VAZIO;
-    if (base.t === "erro" || base.t === "nd") return base;
+    if (ruim(base)) return base;
     if (base.t !== "ref") return erro("#VALUE!");
-    const inteiro = (v, padrao) => {
-      if (!v || v.t === "vazio") return padrao;
-      const n = numero(v);
-      return typeof n === "number" ? Math.trunc(n) : n;
-    };
-    const lins = inteiro(args[1], 0);
-    const cols = inteiro(args[2], 0);
-    const altura = inteiro(args[3], base.r2 - base.r1 + 1);
-    const largura = inteiro(args[4], base.c2 - base.c1 + 1);
+    const lins = inteiroOu(args[1], 0);
+    const cols = inteiroOu(args[2], 0);
+    const altura = inteiroOu(args[3], base.r2 - base.r1 + 1);
+    const largura = inteiroOu(args[4], base.c2 - base.c1 + 1);
     for (const n of [lins, cols, altura, largura]) if (typeof n !== "number") return n;
     if (altura < 1 || largura < 1) return nd("altura ou largura negativa");
     const r1 = base.r1 + lins;
@@ -230,16 +517,44 @@
     return erro("#REF!");
   }
 
+  // ÍNDICE(matriz; linha; [coluna]): devolve a célula (ou a linha/coluna inteira, com 0).
+  function indice(args) {
+    const [matriz, linArg, colArg] = args;
+    if (!matriz) return erro("#VALUE!");
+    if (ruim(matriz)) return matriz;
+    if (matriz.t !== "ref") return { excel: true };
+    const altura = matriz.r2 - matriz.r1 + 1;
+    const largura = matriz.c2 - matriz.c1 + 1;
+    let lin = inteiroOu(linArg, 0);
+    let col = inteiroOu(colArg, 0);
+    for (const n of [lin, col]) if (typeof n !== "number") return n;
+    // Vetor horizontal com um número só: o número é a coluna.
+    if (colArg === undefined && altura === 1 && largura > 1) {
+      col = lin;
+      lin = 1;
+    }
+    if (lin === 0 && altura === 1) lin = 1;
+    if (col === 0 && largura === 1) col = 1;
+    if (lin < 0 || col < 0 || lin > altura || col > largura) return erro("#REF!");
+    const ret = {
+      r1: lin ? matriz.r1 + lin - 1 : matriz.r1,
+      r2: lin ? matriz.r1 + lin - 1 : matriz.r2,
+      c1: col ? matriz.c1 + col - 1 : matriz.c1,
+      c2: col ? matriz.c1 + col - 1 : matriz.c2,
+    };
+    return { ler: { folha: matriz.folha, ref: E.formatarRef(ret) } };
+  }
+
   // ---------- Cálculo em rodadas ----------
   // Cada rodada calcula tudo o que já é possível e junta as leituras e chamadas ao Excel que
-  // faltam, para mandar de uma vez só. Repete até a fórmula inteira ter valor.
+  // faltam, para mandar de uma vez só. Repete até não sobrar nada pendente.
 
   async function avaliar(ast, adaptador, ctx) {
     const cache = new Map();
-    for (let rodada = 0; rodada < MAX_RODADAS && ast.val === undefined; rodada++) {
-      const est = { cache, leituras: new Map(), chamadas: [], adaptador, ctx };
+    for (let rodada = 0; rodada < MAX_RODADAS; rodada++) {
+      const est = { cache, leituras: new Map(), chamadas: [], adaptador, ctx, novos: false };
       visitar(ast, est);
-      if (ast.val !== undefined || (!est.leituras.size && !est.chamadas.length)) break;
+      if (!est.leituras.size && !est.chamadas.length && !est.novos) break;
       if (est.leituras.size) {
         const lidos = await adaptador.ler([...est.leituras.values()]);
         for (const chave of est.leituras.keys()) cache.set(chave, lidos.get(chave) || nd("não lido"));
@@ -255,6 +570,7 @@
     return ast;
   }
 
+  // Filhos na árvore. O nome definido mostra a definição como filho, mas não depende dela.
   function filhosDe(no) {
     switch (no.tipo) {
       case "operacao":
@@ -262,15 +578,17 @@
       case "neg":
       case "pct": return [no.filho];
       case "func": return no.args;
+      case "nome": return no.definicao ? [no.definicao.ast] : [];
       default: return [];
     }
   }
 
+  const dependenciasDe = (no) => (no.tipo === "nome" ? [] : filhosDe(no));
+
   function visitar(no, est) {
+    filhosDe(no).forEach((f) => visitar(f, est));
     if (no.val !== undefined) return;
-    const filhos = filhosDe(no);
-    filhos.forEach((f) => visitar(f, est));
-    if (filhos.some((f) => f.val === undefined)) return;
+    if (dependenciasDe(no).some((f) => f.val === undefined)) return;
     const val = calcularNo(no, est);
     if (val !== undefined) no.val = val;
   }
@@ -293,7 +611,9 @@
       case "ref": return referencia(no, est);
       case "nome": {
         const { folha, ref } = E.separar(no.texto);
-        return pedir(pedidoDeNome(ref, folha), est);
+        const val = pedir(pedidoDeNome(ref, folha), est);
+        if (val && val.definicao) anexarDefinicao(no, val.definicao, est);
+        return val;
       }
       case "neg": {
         const x = numero(no.filho.val);
@@ -311,6 +631,24 @@
     }
   }
 
+  function anexarDefinicao(no, definicao, est) {
+    const profundidade = (no.profundidade || 0) + 1;
+    if (no.definicao || profundidade > MAX_PROFUNDIDADE_NOMES) return;
+    try {
+      const tokens = F.tokenizar(definicao);
+      const ast = F.analisar(tokens);
+      const marcar = (n) => {
+        n.profundidade = profundidade;
+        filhosDe(n).forEach(marcar);
+      };
+      marcar(ast);
+      no.definicao = { ast, tokens, texto: definicao };
+      est.novos = true;
+    } catch (e) {
+      // definição que a Lupa não sabe ler: o nome fica sem o detalhe
+    }
+  }
+
   function referencia(no, est) {
     const { folha, ref } = E.separar(no.texto);
     if (folha && folha.startsWith("[")) return nd("referência a outro arquivo");
@@ -323,7 +661,7 @@
   // "A1:DESLOC(...)": junta as duas pontas num intervalo só.
   function unir(no, est) {
     const vals = no.operandos.map((o) => o.val);
-    const problema = vals.find((v) => v.t === "erro" || v.t === "nd");
+    const problema = vals.find(ruim);
     if (problema) return problema;
     if (vals.some((v) => v.t !== "ref" || v.folha !== vals[0].folha)) return erro("#VALUE!");
     return pedir(pedidoDeRef(vals[0].folha, E.formatarRef(E.caixa(vals))), est);
@@ -335,11 +673,22 @@
     const propria = PROPRIAS[no.nome];
     if (propria) {
       const r = propria(args, est.ctx);
-      return r && r.ler ? pedir(pedidoDe(r.ler), est) : r;
+      const res = r && r.t ? { val: r } : r || { val: nd("sem resultado") };
+      if (res.escolhido !== undefined) no.escolhido = res.escolhido;
+      if (res.alvos) no.alvos = res.alvos;
+      if (!res.excel) return res.ler ? pedir(pedidoDe(res.ler), est) : res.val;
+    }
+    const filtro = FILTROS[no.nome];
+    if (filtro && !no.alvos) {
+      try {
+        no.alvos = filtro(args) || undefined;
+      } catch (e) {
+        no.alvos = undefined;
+      }
     }
     const metodo = est.adaptador.metodo(no.nome);
     if (!metodo) return nd("função que a Lupa ainda não calcula");
-    const problema = args.find((v) => v.t === "nd" || v.t === "erro");
+    const problema = args.find(ruim);
     if (problema) return problema;
     const lista = args.map(paraArgumento);
     while (lista.length && lista[lista.length - 1] === undefined) lista.pop();
@@ -436,13 +785,14 @@
     return texto.slice(tokens[no.t0].ini, tokens[no.t1].fim);
   }
 
-  // Coluna "Local" e o intervalo que a janela seleciona no Excel ao clicar na linha:
-  // o retângulo que contém todas as células usadas por esta parte da fórmula.
+  // Coluna "Local" e o que a janela seleciona no Excel ao clicar na linha: as células destacadas
+  // pela função (SOMASES, CORRESP...) ou o retângulo com todas as células usadas por esta parte.
   function localizacao(no, ctx) {
+    if (no.alvos && no.alvos.length) return localDeCelulas(no.alvos, ctx);
     const refs = [];
     const coletar = (n) => {
       if (n.val && n.val.t === "ref") refs.push(n.val);
-      else filhosDe(n).forEach(coletar);
+      else dependenciasDe(n).forEach(coletar);
     };
     coletar(no);
     if (!refs.length) return { local: "", alvo: null };
@@ -454,16 +804,24 @@
     return { local: folha === ctx.folhaBase ? ref : alvo, alvo };
   }
 
+  function localDeCelulas(celulas, ctx) {
+    const folhas = new Set(celulas.map((c) => c.folha));
+    if (folhas.size > 1) return { local: "várias abas", alvo: null };
+    const [folha] = folhas;
+    const rets = B.retangulos(celulas);
+    const prefixo = folha === ctx.folhaBase ? "" : `${E.prefixoFolha(folha)}!`;
+    const local = rets.length === 1 ? prefixo + E.formatarRef(rets[0]) : B.contagem(celulas.length);
+    return { local, alvo: B.endereco(folha, rets) };
+  }
+
   function noExibicao(no, ctx, info) {
     const exibido = {
+      ...B.noVazio(),
       elemento: textoDe(no, ctx),
       info,
       valor: exibirValor(no.val, ctx.idioma),
       ...localizacao(no, ctx),
       ...spanDe(no, ctx),
-      navegar: no.val && no.val.t === "ref" ? `${E.prefixoFolha(no.val.folha)}!${no.val.ref}` : null,
-      omitido: false,
-      filhos: [],
     };
     switch (no.tipo) {
       case "func": {
@@ -480,6 +838,12 @@
       case "pct":
         if (!["num", "txt", "logico"].includes(no.filho.tipo)) exibido.filhos = [noExibicao(no.filho, ctx, "")];
         break;
+      case "nome":
+        if (no.definicao) {
+          const sub = { ...ctx, tokens: no.definicao.tokens, texto: no.definicao.texto, alinhado: false };
+          exibido.filhos = [noExibicao(no.definicao.ast, sub, "definição")];
+        }
+        break;
       default:
         break;
     }
@@ -488,8 +852,9 @@
 
   function argumentos(no, ctx) {
     const filhos = no.args.map((arg, i) => {
-      const nome = A.nome(no.nome, i, ctx.idioma);
-      return arg.tipo === "vazio" ? omitido(no.nome, i, ctx) : noExibicao(arg, ctx, nome);
+      const filho = arg.tipo === "vazio" ? omitido(no.nome, i, ctx) : noExibicao(arg, ctx, A.nome(no.nome, i, ctx.idioma));
+      filho.escolhido = i === no.escolhido;
+      return filho;
     });
     for (const i of A.opcionaisAusentes(no.nome, no.args.length, ctx.idioma)) filhos.push(omitido(no.nome, i, ctx));
     return filhos;
@@ -497,57 +862,87 @@
 
   function omitido(funcao, i, ctx) {
     return {
+      ...B.noVazio(),
       elemento: "<omitido>",
       info: A.nome(funcao, i, ctx.idioma),
       valor: A.padrao(funcao, i, ctx.idioma),
-      local: "",
-      alvo: null,
-      ini: null,
-      fim: null,
-      navegar: null,
       omitido: true,
-      filhos: [],
     };
   }
 
-  // celula: { folha, ref, texto, formula, formulaLocal, separadores, idioma }
+  // Fórmula avulsa (fonte de uma validação, por exemplo) já calculada e pronta para exibir.
+  async function subarvore(formula, adaptador, ctx, info) {
+    try {
+      const tokens = F.tokenizar(formula);
+      const ast = F.analisar(tokens);
+      await avaliar(ast, adaptador, ctx);
+      return noExibicao(ast, { ...ctx, tokens, texto: formula, alinhado: false }, info);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // validacao: { tipo, regra } como o Excel devolve em Range.dataValidation.
+  async function noValidacao(validacao, adaptador, ctx) {
+    const no = { ...B.noVazio(), elemento: `Validação: ${TIPOS_VALIDACAO[validacao.tipo] || validacao.tipo}` };
+    const regra = validacao.regra || {};
+    let formula = null;
+    if (validacao.tipo === "List" && regra.list) formula = regra.list.source;
+    if (validacao.tipo === "Custom" && regra.custom) formula = regra.custom.formula;
+    if (typeof formula === "string" && formula.startsWith("=")) {
+      const sub = await subarvore(formula, adaptador, ctx, validacao.tipo === "List" ? "fonte" : "fórmula");
+      if (sub) {
+        no.filhos = [sub];
+        no.local = sub.local;
+        no.alvo = sub.alvo;
+      } else {
+        no.valor = formula;
+      }
+    } else if (formula) {
+      no.valor = String(formula);
+    } else {
+      const partes = Object.values(regra).find((r) => r && typeof r === "object") || {};
+      no.valor = [partes.operator, partes.formula1, partes.formula2].filter((x) => x !== undefined && x !== null && x !== "").join(" ");
+    }
+    return no;
+  }
+
+  // celula: { folha, ref, texto, formula, formulaLocal, separadores, idioma, validacao? }
   // Devolve o que a janela precisa: endereço, fórmula local, árvore e um aviso opcional.
   async function montarDados(celula, adaptador) {
     const { folha, ref, idioma } = celula;
+    const endereco = `${E.prefixoFolha(folha)}!${ref}`;
     const arvore = {
+      ...B.noVazio(),
       elemento: ref,
-      info: "",
       valor: celula.texto === "" || celula.texto == null ? "<vazio>" : String(celula.texto),
       local: ref,
-      alvo: `${E.prefixoFolha(folha)}!${ref}`,
-      ini: null,
-      fim: null,
-      navegar: null,
-      omitido: false,
-      filhos: [],
+      alvo: endereco,
     };
     const formula = typeof celula.formula === "string" ? celula.formula : "";
     const formulaLocal = celula.formulaLocal == null ? "" : String(celula.formulaLocal);
-    const dados = { celula: arvore.alvo, formula: formulaLocal, arvore, aviso: "" };
-    if (!formula.startsWith("=")) {
-      dados.aviso = "Esta célula não tem fórmula. Digite uma abaixo para criar.";
-      return dados;
-    }
-    let tokens;
-    let ast;
-    try {
-      tokens = F.tokenizar(formula);
-      ast = F.analisar(tokens);
-    } catch (e) {
-      dados.aviso = `Não consegui ler esta fórmula (${e.message}).`;
-      return dados;
-    }
-    const tokensLocal = F.tokenizar(formulaLocal, celula.separadores);
-    const alinhado = F.alinhados(tokens, tokensLocal);
+    const dados = { modo: "formula", editavel: true, titulo: endereco, celula: endereco, formula: formulaLocal, arvore, aviso: "" };
     const ctx = { folhaBase: folha, idioma };
-    await avaliar(ast, adaptador, ctx);
-    arvore.filhos = [noExibicao(ast, { ...ctx, tokens, tokensLocal, texto: formula, textoLocal: formulaLocal, alinhado }, "")];
-    if (!alinhado) dados.aviso = "Mostrando as partes em inglês: não consegui alinhar com a fórmula em português.";
+    if (formula.startsWith("=")) {
+      let tokens = null;
+      let ast = null;
+      try {
+        tokens = F.tokenizar(formula);
+        ast = F.analisar(tokens);
+      } catch (e) {
+        dados.aviso = `Não consegui ler esta fórmula (${e.message}).`;
+      }
+      if (ast) {
+        const tokensLocal = F.tokenizar(formulaLocal, celula.separadores);
+        const alinhado = F.alinhados(tokens, tokensLocal);
+        await avaliar(ast, adaptador, ctx);
+        arvore.filhos.push(noExibicao(ast, { ...ctx, tokens, tokensLocal, texto: formula, textoLocal: formulaLocal, alinhado }, ""));
+        if (!alinhado) dados.aviso = "Mostrando as partes em inglês: não consegui alinhar com a fórmula em português.";
+      }
+    } else {
+      dados.aviso = "Esta célula não tem fórmula. Digite uma abaixo para criar.";
+    }
+    if (celula.validacao) arvore.filhos.push(await noValidacao(celula.validacao, adaptador, ctx));
     return dados;
   }
 
