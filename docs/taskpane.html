@@ -5,15 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Lupa de Fórmulas</title>
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <link rel="stylesheet" href="taskpane.css?v=0.1.0">
+  <link rel="stylesheet" href="taskpane.css?v=0.2.0">
 </head>
 <body>
   <header>
     <h1>Lupa de Fórmulas</h1>
-    <span class="versao">protótipo 0.1.0</span>
+    <span class="versao">protótipo 0.2.0</span>
   </header>
   <p id="ultimo-atalho" class="ultimo">Nenhum atalho recebido ainda.</p>
   <div id="aviso" class="aviso" hidden></div>
+
+  <div class="botoes">
+    <button id="btn-janela">Janela da fórmula (Ctrl+Q)</button>
+  </div>
 
   <section>
     <h2>Célula ativa</h2>
@@ -49,7 +53,11 @@
     <span id="copiado" class="nota"></span>
   </details>
 
-  <script src="enderecos.js?v=0.1.0"></script>
-  <script src="taskpane.js?v=0.1.0"></script>
+  <script src="enderecos.js?v=0.2.0"></script>
+  <script src="argumentos.js?v=0.2.0"></script>
+  <script src="formula.js?v=0.2.0"></script>
+  <script src="avaliador.js?v=0.2.0"></script>
+  <script src="excel.js?v=0.2.0"></script>
+  <script src="taskpane.js?v=0.2.0"></script>
 </body>
 </html>

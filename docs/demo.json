@@ -1,0 +1,120 @@
+{
+  "celula": "Modelo!O110",
+  "formula": "=SOMA(O111:DESLOC(O116;-1;;;))",
+  "arvore": {
+    "elemento": "O110",
+    "info": "",
+    "valor": "-2.461.833,08",
+    "local": "O110",
+    "ini": null,
+    "fim": null,
+    "navegar": null,
+    "omitido": false,
+    "filhos": [
+      {
+        "elemento": "SOMA",
+        "info": "",
+        "valor": "-2.461.833,08",
+        "local": "O111:O115",
+        "ini": 1,
+        "fim": 30,
+        "navegar": null,
+        "omitido": false,
+        "filhos": [
+          {
+            "elemento": "O111:DESLOC(O116;-1;;;)",
+            "info": "número1",
+            "valor": "-2.461.833,08",
+            "local": "O111:O115",
+            "ini": 6,
+            "fim": 29,
+            "navegar": "Modelo!O111:O115",
+            "omitido": false,
+            "filhos": [
+              {
+                "elemento": "O111",
+                "info": "",
+                "valor": "-1.031.327,53",
+                "local": "O111",
+                "ini": 6,
+                "fim": 10,
+                "navegar": "Modelo!O111",
+                "omitido": false,
+                "filhos": []
+              },
+              {
+                "elemento": "DESLOC",
+                "info": "",
+                "valor": "-200.000,00",
+                "local": "O115",
+                "ini": 11,
+                "fim": 29,
+                "navegar": "Modelo!O115",
+                "omitido": false,
+                "filhos": [
+                  {
+                    "elemento": "O116",
+                    "info": "ref",
+                    "valor": "199.245.096,56",
+                    "local": "O116",
+                    "ini": 18,
+                    "fim": 22,
+                    "navegar": "Modelo!O116",
+                    "omitido": false,
+                    "filhos": []
+                  },
+                  {
+                    "elemento": "-1",
+                    "info": "lins",
+                    "valor": "-1",
+                    "local": "",
+                    "ini": 23,
+                    "fim": 25,
+                    "navegar": null,
+                    "omitido": false,
+                    "filhos": []
+                  },
+                  {
+                    "elemento": "<omitido>",
+                    "info": "cols",
+                    "valor": "0",
+                    "local": "",
+                    "ini": null,
+                    "fim": null,
+                    "navegar": null,
+                    "omitido": true,
+                    "filhos": []
+                  },
+                  {
+                    "elemento": "<omitido>",
+                    "info": "altura",
+                    "valor": "O mesmo que ref",
+                    "local": "",
+                    "ini": null,
+                    "fim": null,
+                    "navegar": null,
+                    "omitido": true,
+                    "filhos": []
+                  },
+                  {
+                    "elemento": "<omitido>",
+                    "info": "largura",
+                    "valor": "O mesmo que ref",
+                    "local": "",
+                    "ini": null,
+                    "fim": null,
+                    "navegar": null,
+                    "omitido": true,
+                    "filhos": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "aviso": "",
+  "podeVoltar": true
+}

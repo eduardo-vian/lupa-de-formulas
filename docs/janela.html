@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lupa de Fórmulas</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <link rel="stylesheet" href="janela.css?v=0.2.0">
+</head>
+<body>
+  <div class="barra">
+    <button id="btn-voltar" title="Voltar à célula anterior (Alt+←)" disabled>← Voltar</button>
+    <span id="titulo" class="titulo">—</span>
+    <span class="dica">Duplo clique numa referência: ir até ela</span>
+  </div>
+
+  <div id="arvore" class="grade" role="tree" tabindex="0">
+    <div class="cab"><span>Elemento</span><span>Info</span><span class="dir">Valor</span><span class="dir">Local</span></div>
+    <div id="linhas"></div>
+  </div>
+
+  <div class="editor">
+    <div id="realce" class="realce" aria-hidden="true"></div>
+    <textarea id="formula" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Fórmula"></textarea>
+  </div>
+
+  <div id="mensagem" class="mensagem" hidden></div>
+
+  <div class="rodape">
+    <div class="mais">
+      <button id="btn-mais">Mais ▾</button>
+      <div id="menu-mais" class="menu" hidden>
+        <button data-acao="expandir">Expandir tudo</button>
+        <button data-acao="recolher">Recolher tudo</button>
+        <button data-acao="copiar">Copiar árvore</button>
+      </div>
+    </div>
+    <span class="espaco"></span>
+    <button id="btn-aplicar" title="Grava a fórmula editada (Ctrl+Enter)" disabled>Aplicar</button>
+    <button id="btn-ok" class="primario">OK</button>
+  </div>
+
+  <script src="janela.js?v=0.2.0"></script>
+</body>
+</html>

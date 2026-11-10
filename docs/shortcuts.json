@@ -3,12 +3,12 @@
     {
       "id": "MostrarFormula",
       "type": "ExecuteFunction",
-      "name": "Lupa: mostrar a fórmula da célula"
+      "name": "Lupa: janela da fórmula"
     },
     {
       "id": "MostrarFormulaReserva",
       "type": "ExecuteFunction",
-      "name": "Lupa: mostrar a fórmula (atalho reserva)"
+      "name": "Lupa: abrir o painel"
     }
   ],
   "shortcuts": [

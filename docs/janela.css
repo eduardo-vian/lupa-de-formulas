@@ -1,0 +1,136 @@
+:root {
+  color-scheme: light dark;
+  --fundo: #ffffff;
+  --texto: #201f1e;
+  --suave: #605e5c;
+  --borda: #c8c6c4;
+  --cab: #f3f2f1;
+  --sel: #0a64d8;
+  --sel-texto: #ffffff;
+  --marca: #cfe3fb;
+  --botao: #ffffff;
+  --erro: #c50f1f;
+  --omitido: #a19f9d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #1f1f1f;
+    --texto: #f3f2f1;
+    --suave: #c8c6c4;
+    --borda: #484644;
+    --cab: #2b2b2b;
+    --sel: #2f7be6;
+    --marca: #1e3f66;
+    --botao: #2b2b2b;
+    --erro: #ff6b6b;
+    --omitido: #8a8886;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 12px/1.35 -apple-system, "Segoe UI", system-ui, sans-serif;
+  color: var(--texto);
+  background: var(--fundo);
+}
+
+.barra { display: flex; align-items: center; gap: 8px; }
+.titulo { font-weight: 600; }
+.dica { margin-left: auto; color: var(--suave); font-size: 11px; }
+
+.grade {
+  flex: 1 1 auto;
+  min-height: 120px;
+  overflow: auto;
+  border: 1px solid var(--borda);
+  outline: none;
+}
+.grade:focus-visible { box-shadow: 0 0 0 2px rgba(10, 100, 216, .35); }
+
+.cab, .linha { display: grid; grid-template-columns: minmax(150px, 1fr) 120px 120px 90px; }
+.cab {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--cab);
+  border-bottom: 1px solid var(--borda);
+}
+.cab span, .linha > span { padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cab span + span { border-left: 1px solid var(--borda); }
+.dir, .linha .valor, .linha .local { text-align: right; }
+.linha .valor, .linha .local { font-variant-numeric: tabular-nums; }
+.linha { cursor: default; }
+.linha.sel { background: var(--sel); color: var(--sel-texto); }
+.linha.omitido:not(.sel) { color: var(--omitido); }
+
+.elemento { display: flex; align-items: center; gap: 4px; }
+.exp {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--suave);
+  font-size: 10px;
+  line-height: 9px;
+  text-align: center;
+  color: var(--texto);
+  background: var(--botao);
+  cursor: pointer;
+}
+.exp.vazio { border-color: transparent; background: transparent; cursor: default; }
+.txt { overflow: hidden; text-overflow: ellipsis; }
+
+.editor { position: relative; flex: none; height: 76px; border: 1px solid var(--borda); }
+.realce, #formula {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 6px;
+  font: 13px/1.4 Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-y: scroll;
+}
+.realce { color: transparent; pointer-events: none; }
+.realce mark { color: transparent; background: var(--marca); border-bottom: 2px solid var(--sel); }
+#formula { border: none; resize: none; outline: none; background: transparent; color: var(--texto); }
+
+.mensagem { font-size: 11px; color: var(--suave); }
+.mensagem.erro { color: var(--erro); }
+
+.rodape { display: flex; align-items: center; gap: 8px; }
+.espaco { flex: 1; }
+button {
+  font: inherit;
+  padding: 3px 12px;
+  border: 1px solid var(--suave);
+  border-radius: 3px;
+  background: var(--botao);
+  color: var(--texto);
+}
+button.primario { border-color: var(--sel); background: var(--sel); color: var(--sel-texto); min-width: 72px; }
+button:disabled { opacity: .5; }
+
+.mais { position: relative; }
+.menu {
+  position: absolute;
+  bottom: 28px;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+}
+.menu[hidden] { display: none; }
+.menu button { border: none; border-radius: 0; text-align: left; padding: 6px 10px; }
+.menu button:hover { background: var(--cab); }
